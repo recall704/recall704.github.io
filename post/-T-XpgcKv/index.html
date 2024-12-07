@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>CA 证书自签与通信 | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="
+一、非对称加密
+1.1 非对称加密
+指加密和解密使用不同密钥的加密算法，也称为公私钥加密。
+1.2 非对称加密中的证书签名与验证
+
+以上图的虚线为准，左边为签名的实现，右边为签名的验证。
+
+对 Data 部分进行 Hash，结果一般称为 ..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">CA 证书自签与通信</h2>
+            <div class="post-date">2023-07-11</div>
+            
+            <div class="post-content" v-pre>
+              <figure data-type="image" tabindex="1"><img src="https://recall704.github.io/post-images/1689012350623.png" alt="" loading="lazy"></figure>
+<h2 id="一-非对称加密">一、非对称加密</h2>
+<h3 id="11-非对称加密">1.1 非对称加密</h3>
+<p>指加密和解密使用不同密钥的加密算法，也称为公私钥加密。</p>
+<h3 id="12-非对称加密中的证书签名与验证">1.2 非对称加密中的证书签名与验证</h3>
+<p><img src="https://recall704.github.io/post-images/1689008003083.png" alt="" loading="lazy"><br>
+以上图的虚线为准，左边为签名的实现，右边为签名的验证。</p>
+<ul>
+<li>对 Data 部分进行 Hash，结果一般称为 Digest</li>
+<li>通过 CA 的私钥，也就是 ca.key ，对 Digest 进行加密</li>
+<li>将加密后的结果和签名内容放在一起，变成了一个完整的证书</li>
+</ul>
+<p>签名的验证</p>
+<ul>
+<li>客户端使用相同的哈希算法，这里使用的是 SHA-256，对证书内容进行 哈希</li>
+<li>客户端使用公钥对签名部分进行解密，结果就是上图中<code>红色值为 2</code> 的部分</li>
+<li>根据非对称加密算法的特性，<code>红色值 2</code> 应该等于 <code>红色值1</code></li>
+<li>又根据哈希算法的特性，对同样的值进行哈希，结果相同，则有 <code>红色值1</code> 与 <code>Hash Value H1</code></li>
+<li><code>红色值2</code> == <code>红色值1</code> ==  <code>Hash Value H1</code>  =&gt; <code>红色值2</code> ==  <code>Hash Value H1</code> 证书验证通过</li>
+</ul>
+<h2 id="二-创建-ca-证书">二、创建 CA 证书</h2>
+<h3 id="21-mkcert-生成证书">2.1 mkcert 生成证书</h3>
+<pre><code class="language-bash">mkcert --install
+</code></pre>
+<h3 id="22-openssl-生成-ca-证书">2.2 openssl 生成 CA 证书</h3>
+<pre><code class="language-bash"># 生成一个 CA 密钥
+openssl genpkey -algorithm RSA -out ca.key -aes256
+
+# 生成 ca 证书
+openssl req -new -x509 -key ca.key -out ca.crt
+# 生成带有过期时间的 ca 证书
+openssl req -new -x509 -key ca.key -out ca.crt -days 3650
+
+# 证书验证
+openssl x509 -noout -text -in ca.crt
+</code></pre>
+<h3 id="23-cfssl-生成-ca-证书">2.3 cfssl 生成 CA 证书</h3>
+<pre><code class="language-json">{
+  &quot;CN&quot;: &quot;My CA&quot;,
+  &quot;key&quot;: {
+    &quot;algo&quot;: &quot;rsa&quot;,
+    &quot;size&quot;: 2048
+  },
+  &quot;names&quot;: [
+    {
+      &quot;C&quot;: &quot;US&quot;,
+      &quot;L&quot;: &quot;San Francisco&quot;,
+      &quot;O&quot;: &quot;My Company&quot;,
+      &quot;OU&quot;: &quot;IT Department&quot;,
+      &quot;ST&quot;: &quot;California&quot;
+    }
+  ],
+  &quot;ca&quot;: {
+    &quot;expiry&quot;: &quot;87600h&quot;
+  }
+}
+</code></pre>
+<p>保存为 ca-csr.json，然后使用下面命令生成 ca 证书</p>
+<pre><code class="language-bash">cfssl gencert -initca ca-csr.json | cfssljson -bare ca
+</code></pre>
+<h3 id="24-ca-证书中的信息">2.4 CA 证书中的信息</h3>
+<pre><code>Certificate:
+    Data:
+		# X.509 证书版本
+        Version: 3 (0x2)
+		# 证书的序列号，由颁发机构分配
+        Serial Number:
+            b7:58:ea:fc:21:0b:0b:1f:8d:af:7d:b1:ee:ed:f5:1c
+		# 证书签名算法
+        Signature Algorithm: sha256WithRSAEncryption
+		# 颁发机构的信息
+        Issuer: O = mkcert development CA, OU = root@pve, CN = mkcert root@pve
+        # 证书的有效期限，包括起始时间和结束时间
+		Validity
+            Not Before: Jul  8 12:32:11 2023 GMT
+            Not After : Jul  8 12:32:11 2033 GMT
+		# 证书所代表的实体的信息
+        Subject: O = mkcert development CA, OU = root@pve, CN = mkcert root@pve
+        # 证书所包含的公钥信息，包括公钥算法、公钥和模数
+		Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                RSA Public-Key: (3072 bit)
+                Modulus:
+                    00:b9:62:e0:85:05:4b:ab:b8:23:02:86:4f:de:0e:
+                    ...
+                Exponent: 65537 (0x10001)
+        # X.509 证书的扩展信息，包括证书用途、基本限制和实体密钥标识符等
+		X509v3 extensions:
+            X509v3 Key Usage: critical
+                Certificate Sign
+            X509v3 Basic Constraints: critical
+                CA:TRUE, pathlen:0
+			# 在后面生成的 服务端证书中会包含这个值，可以用来判断是否是由该 CA 签发的证书
+            X509v3 Subject Key Identifier: 
+                61:41:20:D4:1A:22:F9:8B:A3:FE:6E:FE:C2:B8:8A:8D:26:C5:61:F3
+    # 证书的数字签名，由颁发机构使用其私钥签名生成，用于验证证书的完整性和真实性
+	Signature Algorithm: sha256WithRSAEncryption
+         8c:8b:81:61:b2:5a:7e:05:55:f3:e7:1a:28:df:85:3b:58:6f:
+         ...
+</code></pre>
+<h2 id="三-生成服务端证书">三、生成服务端证书</h2>
+<h3 id="31-mkcert-生成服务端证书">3.1 mkcert 生成服务端证书</h3>
+<pre><code class="language-bash">mkcert abc.com 192.168.0.100
+# ls
+abc.com+1-key.pem abc.com+1.pem
+</code></pre>
+<h3 id="32-openssl-生成服务端证书">3.2 openssl 生成服务端证书</h3>
+<pre><code class="language-bash"># 生成服务端私钥
+openssl genpkey -algorithm RSA -out server.key -aes256
+# 生成 CSR
+openssl req -newkey rsa:2048 -nodes -keyout server.key \
+	-out server.csr \
+	-subj &quot;/C=US/ST=California/L=San Francisco/O=My Company/OU=IT Department/CN=example.com&quot; \
+	-addext &quot;subjectAltName = DNS:abc.com,DNS:www.abc.com,IP:192.168.0.1&quot;
+# 通过 CSR 生成服务端证书
+openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
+		-out server.crt -days 3650 \
+		-extfile &lt;(printf &quot;subjectAltName=DNS:abc.com,DNS:www.abc.com,IP:192.168.0.100&quot;)
+</code></pre>
+<h3 id="33-cfssl-生成服务端证书">3.3 cfssl 生成服务端证书</h3>
+<pre><code class="language-json">{
+  &quot;CN&quot;: &quot;abc.com&quot;,
+  &quot;hosts&quot;: [
+    &quot;abc.com&quot;,
+    &quot;www.abc.com&quot;,
+    &quot;192.168.0.100&quot;
+  ],
+  &quot;key&quot;: {
+    &quot;algo&quot;: &quot;rsa&quot;,
+    &quot;size&quot;: 2048
+  },
+  &quot;names&quot;: [
+    {
+      &quot;C&quot;: &quot;US&quot;,
+      &quot;L&quot;: &quot;San Francisco&quot;,
+      &quot;O&quot;: &quot;My Company&quot;,
+      &quot;OU&quot;: &quot;IT Department&quot;,
+      &quot;ST&quot;: &quot;California&quot;
+    }
+  ]
+}
+</code></pre>
+<p>保存为 config.json，然后使用下面命令生成</p>
+<pre><code class="language-bash">cfssl gencert -ca ca.pem -ca-key ca-key.pem -config config.json \
+	-profile server server-csr.json | cfssljson -bare server
+</code></pre>
+<h3 id="34-证书示例与说明">3.4 证书示例与说明</h3>
+<pre><code>Certificate:
+    Data:
+		# 证书版本号
+        Version: 3 (0x2)
+		# 证书序列号，用于唯一标识证书
+        Serial Number:
+            9e:a1:c9:65:a9:a1:6a:43:93:dc:2b:24:96:15:d7:ab
+        # 签名算法
+		Signature Algorithm: sha256WithRSAEncryption
+		# 证书颁发者信息，包括组织名（O）、组织单位（OU）和通用名称（CN）
+        # 其实就是 CA 的信息
+        Issuer: O = mkcert development CA, OU = root@pve, CN = mkcert root@pve
+		# 证书有效期，包括证书生效时间（Not Before）和证书失效时间（Not After）
+        Validity
+            Not Before: Jul 10 14:40:52 2023 GMT
+            Not After : Jul 10 14:40:52 2033 GMT
+		# 证书主体信息，包括组织名（O）和组织单位（OU）
+        Subject: O = mkcert development certificate, OU = root@pve
+		# 证书公钥信息，包括公钥算法（Public Key Algorithm）、公钥（RSA Public-Key）和指数（Exponent）
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                RSA Public-Key: (2048 bit)
+                Modulus:
+                    00:c9:05:0e:d7:59:02:5b:30:55:8f:df:e3:54:90:
+                    ...
+                Exponent: 65537 (0x10001)
+		# 证书扩展信息
+        X509v3 extensions:
+			# 证书密钥用途，这里是数字签名和密钥加密
+            X509v3 Key Usage: critical
+                Digital Signature, Key Encipherment
+            # 证书扩展密钥用途，这里是TLS Web Server Authentication
+			X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            # 基本限制扩展，这里标记为非CA证书
+			X509v3 Basic Constraints: critical
+                CA:FALSE
+            # 颁发者密钥标识符，用于标识颁发者的公钥
+			# 这里对应上面 CA 中的 X509v3 Subject Key Identifier
+			X509v3 Authority Key Identifier: 
+                keyid:61:41:20:D4:1A:22:F9:8B:A3:FE:6E:FE:C2:B8:8A:8D:26:C5:61:F3
+			# 主体备用名称，这里就是  SANs 的值
+            X509v3 Subject Alternative Name: 
+                DNS:abc.com, IP Address:192.168.0.100
+    # 证书签名值，由颁发者使用私钥对证书信息进行签名得到
+	Signature Algorithm: sha256WithRSAEncryption
+         5c:ea:7b:5c:6b:aa:ef:03:2b:a2:9f:3a:3d:45:06:75:bc:56:
+         ...
+</code></pre>
+<h2 id="四-安装-ca-根证书">四、安装 CA 根证书</h2>
+<p>在 SSL 通信过程中，客户端会对服务端发送过来的证书进行验证，这个验证就需要 ca.crt</p>
+<pre><code class="language-bash">openssl verify -CAfile ca.crt server.crt
+</code></pre>
+<p>在非对称算法中，<code>私钥用于加密，公钥用于解密</code>。我们使用公钥(ca.crt) 对 server.crt 进行解密，如果能解密成功，说明这个证书是通过 CA 签发的，然后再对比证书 hash 来进行验证。</p>
+<h2 id="41-windows-安装证书">4.1 Windows 安装证书</h2>
+<p>将 ca.crt 拷贝到 windows 上，然后双击进行安装。在<code>证书存储</code>时选择<code>受信任的根证书颁发机构</code>，安装完成后 windows 自带浏览器和一些内置的程序，就可以使用该 CA 签发的证书进行网络通信了。</p>
+<p>如果要使用 Chrome 或 Firefox 之类的浏览器，还是需要单独对浏览器配置 <code>受信任的根证书颁发机构</code></p>
+<h2 id="42-linux-安装证书">4.2 Linux 安装证书</h2>
+<pre><code class="language-go">func init() {
+	switch {
+	case binaryExists(&quot;apt&quot;):
+		CertutilInstallHelp = &quot;apt install libnss3-tools&quot;
+	case binaryExists(&quot;yum&quot;):
+		CertutilInstallHelp = &quot;yum install nss-tools&quot;
+	case binaryExists(&quot;zypper&quot;):
+		CertutilInstallHelp = &quot;zypper install mozilla-nss-tools&quot;
+	}
+	if pathExists(&quot;/etc/pki/ca-trust/source/anchors/&quot;) {
+		SystemTrustFilename = &quot;/etc/pki/ca-trust/source/anchors/%s.pem&quot;
+		SystemTrustCommand = []string{&quot;update-ca-trust&quot;, &quot;extract&quot;}
+	} else if pathExists(&quot;/usr/local/share/ca-certificates/&quot;) {
+		SystemTrustFilename = &quot;/usr/local/share/ca-certificates/%s.crt&quot;
+		SystemTrustCommand = []string{&quot;update-ca-certificates&quot;}
+	} else if pathExists(&quot;/etc/ca-certificates/trust-source/anchors/&quot;) {
+		SystemTrustFilename = &quot;/etc/ca-certificates/trust-source/anchors/%s.crt&quot;
+		SystemTrustCommand = []string{&quot;trust&quot;, &quot;extract-compat&quot;}
+	} else if pathExists(&quot;/usr/share/pki/trust/anchors&quot;) {
+		SystemTrustFilename = &quot;/usr/share/pki/trust/anchors/%s.pem&quot;
+		SystemTrustCommand = []string{&quot;update-ca-certificates&quot;}
+	}
+}
+</code></pre>
+<p>我们可以参考 mkcert 的代码，来将 ca.crt 放到对应的位置并安装到系统。</p>
+<h2 id="五-ssl-通信过程">五、SSL 通信过程</h2>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/hNnW7CT-j/">
+                  <h3 class="post-title">
+                    jenkinsci(草稿)
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

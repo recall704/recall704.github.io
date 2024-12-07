@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>docker容器中启动ssh-server | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="如果在 docker 容器中，安装了 openssh-server，启动的时候会提示没有权限，是因为需要 docker 使用 --privileged 来启动容器，如果没有 privileged 权限，可以尝试使用 service 来启动
+..." />
+    <meta name="keywords" content="docker" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">docker容器中启动ssh-server</h2>
+            <div class="post-date">2023-04-04</div>
+            
+            <div class="post-content" v-pre>
+              <p>如果在 docker 容器中，安装了 <code>openssh-server</code>，启动的时候会提示没有权限，是因为需要 docker 使用 <code>--privileged</code> 来启动容器，如果没有 <code>privileged</code> 权限，可以尝试使用 service 来启动</p>
+<pre><code class="language-bash"># docker run --rm -it centos:7.2.1511 bash
+yum install openssh-server -y -q
+yum install initscripts -y -q
+ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key
+systemctl disable sshd
+cat &gt; /etc/init.d/sshd &lt;&lt; &quot;EOF&quot;
+#!/bin/bash
+#
+# sshd: OpenSSH Server daemon
+#
+# description: The sshd daemon is the server process for ssh
+#
+
+# Source function library.
+. /etc/init.d/functions
+
+# Check that networking is up.
+[ &quot;$NETWORKING&quot; = &quot;no&quot; ] &amp;&amp; exit 0
+
+# Make sshd pid file directory if not exists
+mkdir -p /var/run/sshd
+
+# OpenSSH daemon options
+OPTIONS=&quot;-f /etc/ssh/sshd_config&quot;
+
+# Read environment variables file
+if [ -f /etc/sysconfig/sshd ] ; then
+        . /etc/sysconfig/sshd
+fi
+
+# Start or stop daemon
+case &quot;$1&quot; in
+  start)
+        echo -n $&quot;Starting sshd daemon: &quot;
+        daemon /usr/sbin/sshd $OPTIONS
+        echo
+        ;;
+  stop)
+        echo -n $&quot;Stopping sshd daemon: &quot;
+        killproc /usr/sbin/sshd
+        echo
+        ;;
+  restart)
+        $0 stop
+        sleep 1
+        $0 start
+        ;;
+  *)
+        echo $&quot;Usage: $0 {start|stop|restart}&quot;
+        exit 2
+esac
+
+exit $?
+EOF
+chmod +x /etc/init.d/sshd
+service sshd start
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/ulZAkfnan/" class="tag">
+                    docker
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/kuboard-install/">
+                  <h3 class="post-title">
+                    kuboard docker-compose 启动
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

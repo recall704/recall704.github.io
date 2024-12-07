@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>langchain-with-ollama | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="# ------------------------------------------------------------------------------------------------
+
+from dotenv import l..." />
+    <meta name="keywords" content="langchain,ollama" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">langchain-with-ollama</h2>
+            <div class="post-date">2024-05-13</div>
+            
+            <div class="post-content" v-pre>
+              <pre><code class="language-python"># ------------------------------------------------------------------------------------------------
+
+from dotenv import load_dotenv
+import os
+
+load_dotenv(dotenv_path=&quot;env.txt&quot;)
+
+BASE_URL = os.getenv(&quot;BASE_URL&quot;)
+TEMPERATURE = os.getenv(&quot;TEMPERATURE&quot;)
+MODEL = os.getenv(&quot;MODEL&quot;)
+EMBEDDING_MODEL = os.getenv(&quot;EMBEDDING_MODEL&quot;)
+
+PG_VECTOR_CONNECTION = os.getenv(&quot;PG_VECTOR_CONNECTION&quot;)
+PG_VECTOR_COLLECTION_NAME = os.getenv(&quot;PG_VECTOR_COLLECTION_NAME&quot;)
+
+MAX_LENGTH = 768
+
+# print(&quot;embeddings model: &quot;, EMBEDDING_MODEL)
+
+# ------------------------------------------------------------------------------------------------
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.documents import Document
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_text_splitters.base import TextSplitter
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def get_splitter(language: str) -&gt; TextSplitter:
+    if language == &quot;zh&quot;:
+        from chinese_recursive_text_splitter import ChineseRecursiveTextSplitter
+
+        text_splitter = ChineseRecursiveTextSplitter(
+            keep_separator=True,
+            is_separator_regex=True,
+            chunk_size=200,
+            chunk_overlap=0,
+        )
+        return text_splitter
+    else:
+        from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=200,
+            chunk_overlap=20,
+        )
+        return text_splitter
+
+
+def get_documents_from_web(url: str, splitter: TextSplitter):
+    from langchain_community.document_loaders import WebBaseLoader
+
+    loader = WebBaseLoader(url)
+    docs = loader.load()
+    splited_docs = splitter.split_documents(docs)
+    return splited_docs
+
+
+from langchain_core.embeddings import Embeddings
+from langchain_core.vectorstores import VectorStore
+
+
+def get_vectordb(
+    embeddings: Embeddings, connection: str, collection_name: str
+) -&gt; VectorStore:
+    from langchain_postgres.vectorstores import PGVector
+
+    vectordb = PGVector(
+        embeddings=embeddings,
+        collection_name=collection_name,
+        connection=connection,
+        use_jsonb=True,
+    )
+    return vectordb
+
+
+from langchain_core.language_models.llms import BaseLLM
+
+
+def get_llm(base_url: str, model: str, temperature: float) -&gt; BaseLLM:
+    from langchain_community.llms import Ollama
+
+    llm = Ollama(
+        model=model,
+        base_url=base_url,
+        temperature=temperature,
+    )
+    return llm
+
+
+def get_embeddings(base_url: str, model: str) -&gt; Embeddings:
+    from langchain_community.embeddings import OllamaEmbeddings
+
+    embeddings = OllamaEmbeddings(model=model, base_url=base_url)
+    return embeddings
+
+
+def get_keywords_from_text(
+    llm: BaseLLM,
+    text: str,
+):
+    llm.temperature = 0
+    from langchain_core.output_parsers import StrOutputParser
+    from langchain_core.prompts import ChatPromptTemplate
+
+    text = text[:MAX_LENGTH]
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                &quot;system&quot;,
+                &quot;You are a helpful assistant that return the keyword of user input, you must return the keyword only, without any explanations.&quot;,
+            ),
+            (
+                &quot;human&quot;,
+                f&quot;Please return the keyword of text &gt;&gt;&gt; {text} &lt;&lt;&lt; (avoid explaining the original text)&quot;,
+            ),
+        ]
+    )
+
+    chain = prompt | llm | StrOutputParser()
+    keyword = chain.invoke({&quot;text&quot;: text})
+    return keyword
+
+
+# ------------------------------------------------------------------------------------------------
+llm = get_llm(
+    base_url=BASE_URL,
+    model=MODEL,
+    temperature=float(TEMPERATURE),
+)
+embeddings = get_embeddings(
+    base_url=BASE_URL,
+    model=EMBEDDING_MODEL,
+)
+
+
+vectordb = get_vectordb(
+    embeddings=embeddings,
+    connection=PG_VECTOR_CONNECTION,
+    collection_name=PG_VECTOR_COLLECTION_NAME,
+)
+
+# ------------------------------------------------------------------------------------------------
+query = &quot;什么是垄断性竞争? 它有什么特点&quot;
+keyword = get_keywords_from_text(llm, query)
+filter = {
+    &quot;title&quot;: {&quot;$like&quot;: f&quot;%{keyword}%&quot;},
+}
+where_document = {&quot;$contains&quot;: keyword}
+
+docs = vectordb.similarity_search(query, k=5, filter=filter)
+if len(docs) &lt; 5:
+    docs = vectordb.similarity_search(query, k=5, where_document=where_document)
+
+# for doc in docs:
+#     print(doc.metadata[&quot;source&quot;])
+
+prompt = ChatPromptTemplate.from_template(
+    &quot;&quot;&quot;
+Answer the user's question with given context, ignore the context if it's not relevant.:
+Context: {context}
+Question: {input}
+&quot;&quot;&quot;
+)
+
+chain = create_stuff_documents_chain(
+    llm=llm,
+    prompt=prompt,
+)
+
+response = chain.invoke(
+    {
+        &quot;input&quot;: query,
+        &quot;context&quot;: docs,
+    }
+)
+
+print(query)
+print(&quot;\n&quot;)
+print(response)
+
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/ng6QMSLw_/" class="tag">
+                    langchain
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/vEV3SW3GcX/" class="tag">
+                    ollama
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/translator-with-ollama/">
+                  <h3 class="post-title">
+                    translator with ollama
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

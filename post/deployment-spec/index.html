@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Deployment 字段详解 | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="
+
+
+一、TypeMeta
+二、ObjectMeta
+
+2.1 ResourceVersion
+2.2 Generation
+2.3 DeletionGracePeriodSeconds
+2.4 Labels
+2.5 Annotations..." />
+    <meta name="keywords" content="deployment,spec,k8s" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Deployment 字段详解</h2>
+            <div class="post-date">2023-05-04</div>
+            
+            <div class="post-content" v-pre>
+              <p><ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E4%B8%80-typemeta">一、TypeMeta</a></li>
+<li><a href="#%E4%BA%8C-objectmeta">二、ObjectMeta</a>
+<ul>
+<li><a href="#21-resourceversion">2.1 ResourceVersion</a></li>
+<li><a href="#22-generation">2.2 Generation</a></li>
+<li><a href="#23-deletiongraceperiodseconds">2.3 DeletionGracePeriodSeconds</a></li>
+<li><a href="#24-labels">2.4 Labels</a></li>
+<li><a href="#25-annotations">2.5 Annotations</a></li>
+<li><a href="#26-ownerreferences">2.6 OwnerReferences</a></li>
+<li><a href="#27-finalizers">2.7 Finalizers</a></li>
+<li><a href="#28-clustername">2.8 ClusterName</a></li>
+</ul>
+</li>
+<li><a href="#%E4%B8%89-deploymentspec">三、DeploymentSpec</a>
+<ul>
+<li><a href="#31-replicas">3.1 Replicas</a></li>
+<li><a href="#32-selector">3.2 Selector</a></li>
+<li><a href="#33-strategy">3.3 Strategy</a></li>
+<li><a href="#34-minreadyseconds">3.4 MinReadySeconds</a></li>
+<li><a href="#35-revisionhistorylimit">3.5 RevisionHistoryLimit</a></li>
+<li><a href="#36-paused">3.6 Paused</a></li>
+<li><a href="#37-progressdeadlineseconds">3.7 ProgressDeadlineSeconds</a></li>
+<li><a href="#38-template">3.8 Template</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</p>
+<pre><code class="language-go">type Deployment struct {
+	metav1.TypeMeta `json:&quot;,inline&quot;`
+	metav1.ObjectMeta `json:&quot;metadata,omitempty&quot;`
+
+	Spec DeploymentSpec `json:&quot;spec,omitempty&quot;`
+
+	Status DeploymentStatus `json:&quot;status,omitempty&quot;`
+}
+</code></pre>
+<h2 id="一-typemeta">一、TypeMeta</h2>
+<pre><code class="language-go">type TypeMeta struct {
+	Kind string `json:&quot;kind,omitempty&quot;`
+	APIVersion string `json:&quot;apiVersion,omitempty&quot;`
+}
+</code></pre>
+<p>由于 metav1.TypeMeta <code>json:&quot;,inline&quot;</code> 后面指定了 inline，所以我们在 yaml 中看到的 Kind 和 APIVersion 是展开在外面的，比如</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lmflow
+  namespace: lmflow
+spec:
+  replicas: 1
+...
+</code></pre>
+<h2 id="二-objectmeta">二、ObjectMeta</h2>
+<pre><code class="language-go">type ObjectMeta struct {
+	Name string `json:&quot;name,omitempty&quot;`
+	GenerateName string `json:&quot;generateName,omitempty&quot;`
+	Namespace string `json:&quot;namespace,omitempty&quot;`
+	SelfLink string `json:&quot;selfLink,omitempty&quot;`
+	UID types.UID `json:&quot;uid,omitempty&quot;`
+	ResourceVersion string `json:&quot;resourceVersion,omitempty&quot;`
+	Generation int64 `json:&quot;generation,omitempty&quot;`
+	CreationTimestamp Time `json:&quot;creationTimestamp,omitempty&quot;`
+	DeletionTimestamp *Time `json:&quot;deletionTimestamp,omitempty&quot;`
+	DeletionGracePeriodSeconds *int64 `json:&quot;deletionGracePeriodSeconds,omitempty&quot;`
+	Labels map[string]string `json:&quot;labels,omitempty&quot;`
+	Annotations map[string]string `json:&quot;annotations,omitempty&quot;`
+	OwnerReferences []OwnerReference `json:&quot;ownerReferences,omitempty&quot; patchStrategy:&quot;merge&quot; patchMergeKey:&quot;uid&quot;`
+	Finalizers []string `json:&quot;finalizers,omitempty&quot; patchStrategy:&quot;merge&quot;`
+	ClusterName string `json:&quot;clusterName,omitempty&quot;`
+	ManagedFields []ManagedFieldsEntry `json:&quot;managedFields,omitempty&quot;`
+}
+</code></pre>
+<h3 id="21-resourceversion">2.1 ResourceVersion</h3>
+<p>k8s 中对每一个资源都设置了一个版本号，一旦资源发生了变更，版本号就会增大，如果有 controller watch 了该资源类型，就可以获取变化的内容。</p>
+<h3 id="22-generation">2.2 Generation</h3>
+<p>Generation 用于记录 Deployment 的版本，当 Deployment 发生变更时，通过比较 Generation 和 ReplicasAvailable，我们可以知道 Deployment 是否已经完成更新。只有当 Generation 增加，且新的 ReplicasAvailable 达到期望值后,我们才能确认更新完成。</p>
+<h3 id="23-deletiongraceperiodseconds">2.3 DeletionGracePeriodSeconds</h3>
+<p>删除等待时间，k8s 在删除 Deployment 时，并不会立即从 etcd 中删除，而是设置 DeletionTimestamp，并等待 DeletionGracePeriodSeconds 时间，默认是 30s，这个时间内，可以完成一些对应的操作：</p>
+<ul>
+<li>Deployment 的清理逻辑</li>
+<li>恢复或备份数据</li>
+<li>确保 workload 工作的连续性</li>
+<li>其他预删除逻辑</li>
+</ul>
+<h3 id="24-labels">2.4 Labels</h3>
+<p>deployment 的 labels 是多个键值对的组合，对于 deployment 没有特别的含义。主要有以下作用</p>
+<ul>
+<li>记录 deployment 的信息</li>
+</ul>
+<blockquote>
+<p>recall704.github.io/user: recall<br>
+recall704.github.io/tenant: test<br>
+我们可以在 label 中，记录这个 deployment 所属的用户、租户等相关信息，这主要方便在业务上扩展使用。</p>
+</blockquote>
+<ul>
+<li>在 deployment 上扩展额外功能时记录信息</li>
+</ul>
+<blockquote>
+<p>假设我们要在 deployment 的基础上，创建我们的自定义资源，则我们可以利用 labels 来存放对应的一些数据<br>
+也可以相当于 deployment 的 LabelSelector 匹配 pod 的 label</p>
+</blockquote>
+<h3 id="25-annotations">2.5 Annotations</h3>
+<p>和 labels 类似，Annotations 主要用来存放一些非标信息，比如</p>
+<ul>
+<li>description: 应用的描述</li>
+<li>version、author 等信息</li>
+<li>实现扩展功能</li>
+</ul>
+<blockquote>
+<p>Prometheus 的 ServiceMonitor 通过 Annotation 获取被监控 Service 的信息<br>
+ExternalDNS 通过 Annotation 实现 DNS 记录的自动创建</p>
+</blockquote>
+<h3 id="26-ownerreferences">2.6 OwnerReferences</h3>
+<p>在 k8s 中，OwnerReferences 一般用于定义父子关系，比如 Deployment 创建 ReplicaSet， ReplicaSet 创建 Pod<br>
+Pod 的 OwnerReferences 会记录 ReplicaSet 的信息，ReplicaSet 的 OwnerReferences 中会记录 Deployment 的信息</p>
+<p>OwnerReferences 有以下作用：</p>
+<ul>
+<li>实现资源对象的垃圾回收</li>
+</ul>
+<blockquote>
+<p>在删除 Deployment 时，k8s 的垃圾回收会根据 OwnerReferences 来层层回收对应的资源</p>
+</blockquote>
+<ul>
+<li>方便资源对象的管理</li>
+<li>实现级联删除/更新</li>
+</ul>
+<h3 id="27-finalizers">2.7 Finalizers</h3>
+<p>在 k8s 中，Finalizers 是资源的 preDelete hook，即在删除资源前需要执行的一系列操作</p>
+<p>它主要有以下作用：</p>
+<ul>
+<li>实现资源的预删除钩子,在删除前执行必要的逻辑</li>
+</ul>
+<blockquote>
+<p>比如我们实现了一个 Namespaced 的自定义资源，在删除某个 Namespace 时，也需要删除该 Namespace 下对应的自定义资源</p>
+</blockquote>
+<ul>
+<li>防止资源被误删除</li>
+</ul>
+<blockquote>
+<p>比如 pvc， pv 等存储资源，在删除前，可以检查该资源是否被其它 workload 使用，如果还在使用中，则拦截该删除操作</p>
+</blockquote>
+<ul>
+<li>保证资源删除的顺序性</li>
+</ul>
+<blockquote>
+<p>Finalizers 是一个数组，可以定义多个 Finalizer 来按顺序执行响应的处理</p>
+</blockquote>
+<p>如果要实现一个 Finalizer，可以编写对应的 Kubernetes Admission Controller</p>
+<pre><code class="language-go">func mutate(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
+    // 检查 DeletionTimestamp
+    if ar.Request.Operation == admissionv1.Delete &amp;&amp; ar.Request.Object.DeletionTimestamp != nil {
+        // 执行 Finalizer 逻辑
+        ......
+    }
+}
+</code></pre>
+<h3 id="28-clustername">2.8 ClusterName</h3>
+<p>在有多集群时，可以指定 deployment 所属的 cluster，它有以下作用</p>
+<ul>
+<li>多集群中避免资源名称冲突</li>
+<li>方便跨集群对资源进行管理操作</li>
+<li>实现跨集群的资源间级联管理</li>
+<li>隔离不同的环境</li>
+</ul>
+<p>有了以上的 TypeMeta 和 ObjectMeta 信息之后，我们可以给出下面一个常见的 deployment 配置示例</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+	recall704.github.io/description: &quot;An extensible, convenient, and efficient toolbox for finetuning large machine learning models, designed to be user-friendly, speedy and reliable, and accessible to the entire community.&quot;
+  labels:
+    recall704.github.io/user: recall
+    recall704.github.io/tenant: test
+  name: lmflow
+  namespace: lmflow
+spec:
+# ...
+</code></pre>
+<h2 id="三-deploymentspec">三、DeploymentSpec</h2>
+<pre><code class="language-go">type DeploymentSpec struct {
+	Replicas *int32 `json:&quot;replicas,omitempty&quot;`
+
+	Selector *metav1.LabelSelector `json:&quot;selector&quot;`
+
+	Template v1.PodTemplateSpec `json:&quot;template&quot;`
+
+	Strategy DeploymentStrategy `json:&quot;strategy,omitempty&quot; patchStrategy:&quot;retainKeys&quot;`
+
+	MinReadySeconds int32 `json:&quot;minReadySeconds,omitempty&quot;`
+
+	RevisionHistoryLimit *int32 `json:&quot;revisionHistoryLimit,omitempty&quot;`
+
+	Paused bool `json:&quot;paused,omitempty&quot;`
+
+	ProgressDeadlineSeconds *int32 `json:&quot;progressDeadlineSeconds,omitempty&quot;`
+}
+</code></pre>
+<h3 id="31-replicas">3.1 Replicas</h3>
+<p>期望的 Pod 数量，Pod 的数量一般和业务有一定的关系</p>
+<ul>
+<li>使用块存储的 Pod</li>
+</ul>
+<blockquote>
+<p>块存储一般只允许挂载到一个 Node 上，这个时候 Pod 数量一般设置为 1，而且 Strategy.Type 还需要设置为 Recreate</p>
+</blockquote>
+<ul>
+<li>无状态服务的 Pod</li>
+</ul>
+<blockquote>
+<p>如果是无状态服务的 Pod，那么 Pod 的数量一般和业务承载的流量有关，如果业务流量突然增大，则可以按需增加 Pod 的数量</p>
+</blockquote>
+<h3 id="32-selector">3.2 Selector</h3>
+<p>Deployment 的 spec.selector 用于定义该 Deployment 要管理的 Pod 标签选择器。Deployment 会持续监听与这个选择器匹配的 Pod,并确保它们达到 spec.replicas 字段指定的期望副本数。</p>
+<ul>
+<li>选择 Deployment 要管理和监听的 Pod</li>
+<li>作为 Deployment 扩缩容与升级的判断依据</li>
+<li>Pod 标签变更后的回收与更新</li>
+</ul>
+<h3 id="33-strategy">3.3 Strategy</h3>
+<p>Deployment 的升级策略，分为两种</p>
+<ul>
+<li>Recreate</li>
+</ul>
+<blockquote>
+<p>对于像挂载了块存储的 deployment，需要卸载对应的块存储，删除 Pod，才能重新启动新的 Pod，所以升级策略只能是 Recreate</p>
+</blockquote>
+<ul>
+<li>RollingUpdate</li>
+</ul>
+<blockquote>
+<p>滚动升级，对于无状态服务，则可以使用滚动升级，即先升级部分 Pod，升级成功之后，再升级剩下的 Pod<br>
+为了控制滚动升级的 Pod 数量，RollingUpdate 策略有两个参数需要设置<br>
+MaxUnavailable：最大不可用 Pod 数量，可以是具体的数值，也可以是百分比，计算时向下取整<br>
+MaxSurge： 升级过程中 Pod 的最大数量，可以是具体的数值，也可以是百分比，计算时向上取整<br>
+升级过程中： AvailablePodsNumber &gt;= spec.replicas - spec.strategy.maxUnavailable<br>
+AllPodsNumber &lt;= spec.replicas + spec.strategy.maxSurge<br>
+这里我们可以举三个例子来说明升级的过程</p>
+</blockquote>
+<ol>
+<li>replicas = 3，maxUnavailable = 0， maxSurge = 1</li>
+</ol>
+<blockquote>
+<p>先升级，再删除旧 Pod，最多有 4 个 Pod，最少有 3 个 Pod<br>
+升级过程中 Pod 数量是:  4 个 -&gt; 3 个，4 个 -&gt; 3 个，4 个 -&gt; 3 个</p>
+</blockquote>
+<ol start="2">
+<li>replicas = 3，maxUnavailable = 1， maxSurge = 0</li>
+</ol>
+<blockquote>
+<p>先删除旧 Pod，再升级，最多有 3 个 Pod，最少有 2 个 Pod<br>
+升级过程中 Pod 数量是:  2 个 -&gt; 3 个，2 个 -&gt; 3 个，2 个 -&gt; 3 个</p>
+</blockquote>
+<ol start="3">
+<li>replicas = 3，maxUnavailable = 1， maxSurge = 1</li>
+</ol>
+<blockquote>
+<ol>
+<li>升级开始时,有 3 个旧 Pod 运行</li>
+<li>根据 maxSurge=1,可以创建 1 个新的 Pod,此时有 3 个旧 Pod 和 1 个新 Pod,总数 4 个</li>
+<li>根据 maxUnavailable=1,可以删除 1 个旧 Pod,此时有 2 个旧 Pod 和 1 个新 Pod,总数 3 个</li>
+<li>重复步骤 2 和 3,创建 1 个新的 Pod,然后删除 1 个旧 Pod</li>
+<li>直到删除完所有的旧 Pod,此时有 3 个新 Pod</li>
+<li>删除 maxSurge 中多创建的 1 个 Pod,最终达到 replicas=3 的期望状态</li>
+</ol>
+</blockquote>
+<p>为了保证服务升级过程中的可用性，强烈建议给 Pod 配置就绪检查 readinessProbe ，如果集群中的 Pod 数量非常多，可能还需要配置 PreStop ，同时业务调用方可能还需要设置失败重试功能。</p>
+<h3 id="34-minreadyseconds">3.4 MinReadySeconds</h3>
+<p>最小 ready 等待时间，默认为 0。有些 pod 启动之后可能会 crash，但不会立即 crash，可能运行一段时间后才 crash，如果设置了 MinReadySeconds，则可以等待 pod 运行一定时间之后，才任务其状态是 Ready。<br>
+与 readinessProbe 不同的时，MinReadySeconds 只会等待特定的时间，不参与逻辑判断。</p>
+<h3 id="35-revisionhistorylimit">3.5 RevisionHistoryLimit</h3>
+<p>rs 保留的数量，如果数量过少，则当业务需要回滚时之前的版本已经丢失；如果数量过多，则会存放大量的无用数据。个人推荐设置为 10 以内的值。</p>
+<h3 id="36-paused">3.6 Paused</h3>
+<p>如果 Paused 为 true，则 deployment 不会对现有的 pod 做任何变更。<br>
+它有以下作用：</p>
+<ul>
+<li>暂停:临时停止 Deployment 的运行，现有的 pod 无影响</li>
+<li>一次性更新:一次更新 Deployment 的 template,避免多次 incremental 更新带来的问题</li>
+<li>调试 Deployment</li>
+</ul>
+<blockquote>
+<p>在 Deployment 正常运行后,我们设置 spec.paused=true 可以暂停其管理的资源,以便我们对其进行调试、测试与修改。这避免了调试过程中由于Deployment的操作导致的干扰。</p>
+</blockquote>
+<h3 id="37-progressdeadlineseconds">3.7 ProgressDeadlineSeconds</h3>
+<p>spec.progressDeadlineSeconds 字段用于指定 Deployment 在多长时间内如果没有任何进展则视为失败。它的值必须为整数,默认为 600(10 分钟)。</p>
+<p>progressDeadlineSeconds 主要有以下作用:</p>
+<ul>
+<li>防止卡住的 Deployment</li>
+</ul>
+<blockquote>
+<p>当 Deployment 由于某些原因卡住无法进展时,progressDeadlineSeconds 可以确保在指定的时间后 Deployment 被视为失败。这可以避免 Deployment 永久处于不正常状态。</p>
+</blockquote>
+<ul>
+<li>及时发现问题</li>
+</ul>
+<blockquote>
+<p>如果 Deployment 运行中遇到问题无法正常进展,progressDeadlineSeconds 可以快速发现该问题,而不必等待资源被耗尽。这有助于我们及时定位并修复问题。</p>
+</blockquote>
+<ul>
+<li>防止资源消耗过多</li>
+</ul>
+<blockquote>
+<p>progressDeadlineSeconds 可以确保即使 Deployment 运行失败,也不会过度消耗资源。它为 Deployment的失败状态设置了一个最大时长,超过该期限 Deployment 将被视为失败并停止操作。</p>
+</blockquote>
+<h3 id="38-template">3.8 Template</h3>
+<p>PodTemplateSpec 中指定了 pod 的具体参数，由于内容过多，单开一篇文章来描述。</p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/aBaGcGi8m/" class="tag">
+                    deployment
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/pRaRZrWdbS/" class="tag">
+                    spec
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/_Nfycvl4t/" class="tag">
+                    k8s
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/zhao-pian-guan-li-mt-photos-da-jian/">
+                  <h3 class="post-title">
+                    照片管理-mt Photos 搭建
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>openebs 搭建-cstor方式 | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="一、前置要求
+
+isisc
+系统盘之外的额外磁盘，不需要先格式化
+
+二、安装
+kubectl apply -f https://openebs.github.io/charts/cstor-operator.yaml
+
+等待 operato..." />
+    <meta name="keywords" content="存储,k8s" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">openebs 搭建-cstor方式</h2>
+            <div class="post-date">2022-11-01</div>
+            
+            <div class="post-content" v-pre>
+              <h2 id="一-前置要求">一、前置要求</h2>
+<ul>
+<li>isisc</li>
+<li>系统盘之外的额外磁盘，不需要先格式化</li>
+</ul>
+<h2 id="二-安装">二、安装</h2>
+<pre><code class="language-bash">kubectl apply -f https://openebs.github.io/charts/cstor-operator.yaml
+</code></pre>
+<p>等待 operator 服务正常启动</p>
+<pre><code class="language-bash">kubectl get bd -n openebs
+</code></pre>
+<p>operator 服务正常启动之后，通过 <code>kubectl get bd -n openebs</code>会自动读取 node 上的可用磁盘，读取需要的 node 上的信息，保存为下面的文件内容</p>
+<pre><code class="language-yaml">apiVersion: cstor.openebs.io/v1
+kind: CStorPoolCluster
+metadata:
+ name: cstor-disk-pool
+ namespace: openebs
+spec:
+ pools:
+   - nodeSelector:
+       kubernetes.io/hostname: &quot;node1&quot;
+     dataRaidGroups:
+       - blockDevices:
+           - blockDeviceName: &quot;blockdevice-3213a3bb3822161df3732b0321de495a&quot;
+     poolConfig:
+       dataRaidGroupType: &quot;stripe&quot;
+</code></pre>
+<p>执行上面的 yaml 之后，我们的存储资源池就创建好了，再创建 sc 就可以正常使用了</p>
+<pre><code class="language-yaml">kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: cstor-csi-disk
+provisioner: cstor.csi.openebs.io
+allowVolumeExpansion: true
+parameters:
+  cas-type: cstor
+  # cstorPoolCluster should have the name of the CSPC
+  cstorPoolCluster: cstor-disk-pool
+  # replicaCount should be &lt;= no. of CSPI created in the selected CSPC
+  replicaCount: &quot;1&quot;
+</code></pre>
+<p>需要注意的是，replicaCount 的值，要小于等于上面 pool 的数量</p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/9fEI8ViB2/" class="tag">
+                    存储
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/_Nfycvl4t/" class="tag">
+                    k8s
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/k8s-zhong-cun-chu-xiang-guan-de-ji-ge-gai-nian/">
+                  <h3 class="post-title">
+                    k8s 中存储相关的几个概念
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

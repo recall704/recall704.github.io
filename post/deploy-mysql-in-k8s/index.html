@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>k8s 中部署 mysql | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="通过 python 生成 mysql 对应的 yaml 文件。
+
+# -*- coding: utf-8 -*-
+# 需要 python 3.6 以上版本
+import base64
+import argparse
+
+
+def get_k8..." />
+    <meta name="keywords" content="mysql,deployment,k8s" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">k8s 中部署 mysql</h2>
+            <div class="post-date">2023-08-09</div>
+            
+            <div class="post-content" v-pre>
+              <p>通过 python 生成 mysql 对应的 yaml 文件。</p>
+<!-- more -->
+<pre><code class="language-python"># -*- coding: utf-8 -*-
+# 需要 python 3.6 以上版本
+import base64
+import argparse
+
+
+def get_k8s_mysql_yaml(namespace, name, password, image, pvc_name, subpath):
+    mysql_root_password = base64.b64encode(password.encode(&quot;utf-8&quot;)).decode(&quot;utf-8&quot;)
+    if subpath != &quot;&quot; and pvc_name != &quot;&quot;:
+        sub_path = f&quot;subPath: {subpath}&quot;
+    else:
+        sub_path = &quot;&quot;
+    if pvc_name == &quot;&quot;:
+        volume = f&quot;&quot;&quot;- name: vol-data
+        emptyDir: {{}}&quot;&quot;&quot;
+    else:
+        volume = f&quot;&quot;&quot;- name: vol-data
+        persistentVolumeClaim:
+          claimName: {pvc_name}&quot;&quot;&quot;
+    yaml_content = f&quot;&quot;&quot;cat &gt; {name}.yaml &lt;&lt; \EOF
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-{name}
+  namespace: {namespace}
+  labels:
+    k8s.kuboard.cn/name: {name}
+data:
+  mysqld.cnf: |
+    [mysqld]
+    datadir = /var/lib/mysql
+    bind-address = 0.0.0.0
+    # 禁止使用软连接
+    symbolic-links=0
+    max_allowed_packet=64M
+    max_connections=2000
+    default_storage_engine=INNODB
+    # 表名忽略大小写
+    lower_case_table_names=1
+    skip_name_resolve
+    character_set_server=utf8mb4
+    # 开启 binlog
+    server-id = 107
+    log-bin = mysql-bin
+    binlog_format = ROW
+    binlog_row_image = FULL
+    expire_logs_days = 5
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret-{name}
+  namespace: {namespace}
+  labels:
+    k8s.kuboard.cn/name: {name}
+type: Opaque
+data:
+  password: {mysql_root_password}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-{name}
+  namespace: {namespace}
+  labels:
+    k8s.kuboard.cn/name: {name}
+spec:
+  selector:
+    matchLabels:
+      k8s.kuboard.cn/name: {name}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        k8s.kuboard.cn/name: {name}
+    spec:
+      containers:
+      - image: {image}
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: secret-{name}
+              key: password
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: vol-data
+          mountPath: /var/lib/mysql
+          {sub_path}
+        - name: vol-config
+          mountPath: /etc/mysql/conf.d
+      volumes:
+      {volume}
+      - name: vol-config
+        configMap:
+          name: cm-{name}
+          items:
+          - key: mysqld.cnf
+            path: mysqld.cnf
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-{name}
+  namespace: {namespace}
+  labels:
+    k8s.kuboard.cn/name: {name}
+spec:
+  ports:
+    - port: 3306
+  selector:
+    k8s.kuboard.cn/name: {name}
+  clusterIP: None
+
+---
+# mysql -h svc-{name}.{namespace} -uroot -p{password}
+EOF
+&quot;&quot;&quot;
+    return yaml_content
+
+
+# =================================================================================================
+parser = argparse.ArgumentParser()
+parser.add_argument(&quot;-n&quot;, &quot;--namespace&quot;, help=&quot;namespace&quot;, default=&quot;database&quot;)
+parser.add_argument(&quot;-a&quot;, &quot;--name&quot;, help=&quot;name&quot;, default=&quot;mysql-app1&quot;)
+parser.add_argument(&quot;-p&quot;, &quot;--password&quot;, help=&quot;password&quot;, default=&quot;123abc&quot;)
+parser.add_argument(&quot;-i&quot;, &quot;--image&quot;, help=&quot;image&quot;, default=&quot;mysql:5.7.43&quot;)
+parser.add_argument(&quot;-v&quot;, &quot;--pvc_name&quot;, help=&quot;pvc_name&quot;, default=&quot;&quot;)
+parser.add_argument(&quot;-s&quot;, &quot;--subpath&quot;, help=&quot;subpath&quot;, default=&quot;&quot;)
+args = parser.parse_args()
+
+yaml_content = get_k8s_mysql_yaml(
+    args.namespace, args.name, args.password, args.image, args.pvc_name, args.subpath
+)
+print(yaml_content)
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/9xSP8chzB/" class="tag">
+                    mysql
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/aBaGcGi8m/" class="tag">
+                    deployment
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/_Nfycvl4t/" class="tag">
+                    k8s
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/convert-video-to-mp4/">
+                  <h3 class="post-title">
+                    ffmpeg转码
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

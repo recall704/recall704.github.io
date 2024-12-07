@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>权限、RBAC 和 ObjectPermission | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="
+
+
+一. 从简单权限控制到 RBAC
+
+1. 只有一个权限
+2. 少量权限
+3. 多个权限
+4. RBAC
+
+
+二、ObjectPermission
+
+1. 简单原型
+2. django 原型
+
+
+
+
+
+
+一. 从简单权限控制到 RBAC..." />
+    <meta name="keywords" content="RBAC,python,django" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">权限、RBAC 和 ObjectPermission</h2>
+            <div class="post-date">2022-10-30</div>
+            
+            <div class="post-content" v-pre>
+              <p><ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E4%B8%80-%E4%BB%8E%E7%AE%80%E5%8D%95%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6%E5%88%B0-rbac">一. 从简单权限控制到 RBAC</a>
+<ul>
+<li><a href="#1-%E5%8F%AA%E6%9C%89%E4%B8%80%E4%B8%AA%E6%9D%83%E9%99%90">1. 只有一个权限</a></li>
+<li><a href="#2-%E5%B0%91%E9%87%8F%E6%9D%83%E9%99%90">2. 少量权限</a></li>
+<li><a href="#3-%E5%A4%9A%E4%B8%AA%E6%9D%83%E9%99%90">3. 多个权限</a></li>
+<li><a href="#4-rbac">4. RBAC</a></li>
+</ul>
+</li>
+<li><a href="#%E4%BA%8C-objectpermission">二、ObjectPermission</a>
+<ul>
+<li><a href="#1-%E7%AE%80%E5%8D%95%E5%8E%9F%E5%9E%8B">1. 简单原型</a></li>
+<li><a href="#2-django-%E5%8E%9F%E5%9E%8B">2. django 原型</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</p>
+<h2 id="一-从简单权限控制到-rbac">一. 从简单权限控制到 RBAC</h2>
+<h3 id="1-只有一个权限">1. 只有一个权限</h3>
+<p>在系统初期，我们的用户是这样的</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>用户名</th>
+<th>密码</th>
+<th>是否管理员</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>admin</td>
+<td>123456</td>
+<td>True</td>
+</tr>
+<tr>
+<td>2</td>
+<td>test1</td>
+<td>123123</td>
+<td>False</td>
+</tr>
+<tr>
+<td>3</td>
+<td>test2</td>
+<td>123123</td>
+<td>False</td>
+</tr>
+</tbody>
+</table>
+<p>系统只有两类用户，管理员和普通用户，判断用户权限的时候，代码如下</p>
+<pre><code class="language-python">def func():
+	user = User.objects.get(id=1)
+	if user.is_admin:
+	    do_someting()
+	else:
+	    pass
+</code></pre>
+<h3 id="2-少量权限">2. 少量权限</h3>
+<p>再后来，我们的系统需要三个权限，发布文章，修改文章，删除文章。</p>
+<p>我们的数据库变成了这样</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>用户名</th>
+<th style="text-align:center">密码</th>
+<th style="text-align:center">是否允许发布文章</th>
+<th style="text-align:center">是否允许修改文章</th>
+<th style="text-align:center">是否允许删除文章</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>test1</td>
+<td style="text-align:center">123123</td>
+<td style="text-align:center">True</td>
+<td style="text-align:center">False</td>
+<td style="text-align:center">False</td>
+</tr>
+<tr>
+<td>2</td>
+<td>test2</td>
+<td style="text-align:center">123123</td>
+<td style="text-align:center">False</td>
+<td style="text-align:center">True</td>
+<td style="text-align:center">False</td>
+</tr>
+<tr>
+<td>3</td>
+<td>test3</td>
+<td style="text-align:center">123123</td>
+<td style="text-align:center">False</td>
+<td style="text-align:center">False</td>
+<td style="text-align:center">True</td>
+</tr>
+</tbody>
+</table>
+<p>同样的，我们的代码也会多一些判断</p>
+<pre><code class="language-python">
+def func():
+	user = User.objects.get(id=1)
+	if user.is_add_allowed:
+	    do_something1()
+	if user.is_edit_allowed:
+	    do_something2()
+	if user.is_delete_allowed:
+	    do_something3()
+
+</code></pre>
+<h3 id="3-多个权限">3. 多个权限</h3>
+<p>当我们的权限越来越多，增加字段已经无法满足了， 我们需要新的方式来完成这个功能</p>
+<p>用户表：</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>用户名</th>
+<th>密码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>test1</td>
+<td>123123</td>
+</tr>
+<tr>
+<td>2</td>
+<td>test2</td>
+<td>123123</td>
+</tr>
+<tr>
+<td>3</td>
+<td>test3</td>
+<td>123123</td>
+</tr>
+</tbody>
+</table>
+<p>权限表</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th style="text-align:center">用户id</th>
+<th style="text-align:center">权限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">add</td>
+</tr>
+<tr>
+<td>2</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">edit</td>
+</tr>
+<tr>
+<td>3</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">edit</td>
+</tr>
+<tr>
+<td>4</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">delete</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">def func():
+	user = User.objects.get(id=1)
+	permission_list = Permission.objects.get(user_id=user.id).values_list(&quot;permission&quot;)
+
+	# sql : select permission_name from table_permission where user_id = 1;
+	# permission_list = ['add', 'edit', ...]
+
+	if 'add' in permission_list:
+		do_add_action()
+	if 'edit' in permission_list:
+		do_edit_action()
+	...
+
+</code></pre>
+<h3 id="4-rbac">4. RBAC</h3>
+<p>RBAC 的全名叫做 Role-Based Access Control， 中文翻译为 <code>基于角色的访问控制</code>。</p>
+<p>从使用的角度来看，上面我们的用户和权限表已经完全够用了。</p>
+<p>但是：</p>
+<ol>
+<li>当我们的权限特别多的时候（不只有 add, view, delete, edit, 还有很多其他权限的时候），用户的增长会给权限表带来指数级的增长。</li>
+<li>很多用户的权限其实是一样的（user1 和 user2 都有同样的权限， user3 又和 user4 有相同的权限），权限表中包含了大量的冗余数据。</li>
+</ol>
+<p>这个时候，我们就很自然的想到 <code>分组</code> 这样一个概念。<br>
+权限1 和 权限2 分为一个组 r1；<br>
+权限3 和 权限4 分为一个组 r2；</p>
+<p>如果用户属于 组r1 ，那么，他就拥有权限1 和 权限2<br>
+如果用户属于 组r2 ，那么，他就拥有权限3 和 权限4</p>
+<ul>
+<li>user1
+<ul>
+<li>role1
+<ul>
+<li>permission1</li>
+<li>permission2</li>
+<li>permission3</li>
+</ul>
+</li>
+<li>role2
+<ul>
+<li>permission4</li>
+<li>permission5</li>
+</ul>
+</li>
+<li>role3
+<ul>
+<li>permission6</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>user2
+<ul>
+<li>role2
+<ul>
+<li>permission4</li>
+<li>permission5</li>
+</ul>
+</li>
+<li>role3
+<ul>
+<li>permission6</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>这样，用户的权限，就是用户角色下的权限之和。</p>
+<p>除了对权限进行分组外，我们还有对用户进行分组的需求，</p>
+<p>这样，我们可以把角色的授权加入到用户组上。</p>
+<ul>
+<li>group1
+<ul>
+<li>role1
+<ul>
+<li>permission1</li>
+<li>permission2</li>
+<li>permission3</li>
+</ul>
+</li>
+<li>role2
+<ul>
+<li>permission4</li>
+<li>permission5</li>
+</ul>
+</li>
+<li>role3
+<ul>
+<li>permission6</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>group2
+<ul>
+<li>role2
+<ul>
+<li>permission4</li>
+<li>permission5</li>
+</ul>
+</li>
+<li>role3
+<ul>
+<li>permission6</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>只要我们的用户属于某个用户组，那么他就拥有该用户组的所有权限</p>
+<h2 id="二-objectpermission">二、ObjectPermission</h2>
+<p>前面谈论的权限，基本上都是 <code>一对多</code>， 或者 <code>多对多</code> 的关系。</p>
+<p>在开发过程中，我们还会遇到一种特别的需求，那就是 <code>一个用户(或者一个对象)对于一个具体对象的权限</code>，而且在程序运行过程中，权限会动态添加和删除。</p>
+<p>这个时候，我们就会需要 ObjectPermission</p>
+<p>表示方式大概如下：</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th style="text-align:center">用户id</th>
+<th style="text-align:center">对象</th>
+<th style="text-align:center">权限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">car1</td>
+<td style="text-align:center">drive</td>
+</tr>
+<tr>
+<td>2</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">dog2</td>
+<td style="text-align:center">walk</td>
+</tr>
+<tr>
+<td>3</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">cat3</td>
+<td style="text-align:center">kiss</td>
+</tr>
+<tr>
+<td>4</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">teacher4</td>
+<td style="text-align:center">teach</td>
+</tr>
+</tbody>
+</table>
+<p>但我们都知道，对象是无法直接存储到数据库的，特别是对象的类型还不一样的时候。</p>
+<h3 id="1-简单原型">1. 简单原型</h3>
+<p>我们可以尝试把对象类型也存储在数据库中，比如</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th style="text-align:center">用户id</th>
+<th style="text-align:center">对象id</th>
+<th style="text-align:center">对象类型</th>
+<th style="text-align:center">权限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">car</td>
+<td style="text-align:center">drive</td>
+</tr>
+<tr>
+<td>2</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">dog</td>
+<td style="text-align:center">walk</td>
+</tr>
+<tr>
+<td>3</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">cat</td>
+<td style="text-align:center">kiss</td>
+</tr>
+<tr>
+<td>4</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">teacher</td>
+<td style="text-align:center">teach</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">    user = User.objects.get(id=1)
+    car = Car.objects.get(id=1)
+    check_permisson(user, car, 'drive')
+</code></pre>
+<p>假设我们在定义 数据模型的时候， Car 有一个 name 属性，值为 car<br>
+那我们就可以直接查数据库，判断 user 对 car 是否有 drive 权限。</p>
+<pre><code class="language-python">
+&quot;SELECT * FROM Permissions WHERE uid={user_id} AND object_id={object_id} AND object_type={object_type} \
+
+AND permission_name={permission_name}&quot;.format(
+    user_id=user.id,
+    object_id=car.id,
+    object_type = getattr(car, 'name'),
+    permission_name='drive'
+)
+
+</code></pre>
+<h3 id="2-django-原型">2. django 原型</h3>
+<p>在 django 中，有一种叫做 content_type 的概念，我们可以参考来实现一个 <code>对象权限控制</code>。</p>
+<p>具体可以参考  <code>django-guardian</code></p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/oHH-DriEd/" class="tag">
+                    RBAC
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/VvAGZWZaW/" class="tag">
+                    python
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/G5N9DCmUBj/" class="tag">
+                    django
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/shi-yong-ida-po-jie-010-editor/">
+                  <h3 class="post-title">
+                    使用 ida 破解 010 editor
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

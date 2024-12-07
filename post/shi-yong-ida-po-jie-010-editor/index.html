@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>使用 ida 破解 010 editor | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="一、软件准备
+1、下载 ida pro
+下载地址： https://bbs.pediy.com/thread-271326.htm
+2、下载并安装 010 editor
+下载地址： https://www.sweetscape.com/01..." />
+    <meta name="keywords" content="逆向,逆向工程,汇编,编辑器,IDA" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">使用 ida 破解 010 editor</h2>
+            <div class="post-date">2022-09-03</div>
+            
+            <div class="post-content" v-pre>
+              <h2 id="一-软件准备">一、软件准备</h2>
+<h3 id="1-下载-ida-pro">1、下载 ida pro</h3>
+<p>下载地址： https://bbs.pediy.com/thread-271326.htm</p>
+<h3 id="2-下载并安装-010-editor">2、下载并安装 010 editor</h3>
+<p>下载地址： https://www.sweetscape.com/010editor/</p>
+<h2 id="二-破解步骤">二、破解步骤</h2>
+<h3 id="1-使用-ida-打开-010-editor">1、使用 ida 打开 010 editor</h3>
+<p>使用默认参数打开即可</p>
+<h3 id="2-搜索字符串">2、搜索字符串</h3>
+<p><img src="https://raw.githubusercontent.com/recall704/oss/main/picgo/ida-search.png" alt="alt|L|800" loading="lazy"><br>
+打开字符串搜索子窗口，然后使用 ctrl + F，搜索字符串<br>
+<img src="https://raw.githubusercontent.com/recall704/oss/main/picgo/20220801082958.png" alt="alt|L|1000" loading="lazy"><br>
+双击进入函数位置，为了方便记忆，我把变量名称改成了 InvalidLicense<br>
+<img src="https://raw.githubusercontent.com/recall704/oss/main/picgo/20220801083311.png" alt="alt|L|1000" loading="lazy"></p>
+<h3 id="3-定位需要修改的函数">3、定位需要修改的函数</h3>
+<p>跳转到代码段之后，我们使用 F5 打开 Pseudocode 模式<br>
+<img src="https://raw.githubusercontent.com/recall704/oss/main/picgo/20220801083858.png" alt="alt|L|800" loading="lazy"><br>
+我们在对应字符串的下面不远处，发现了 Password accepted 字样的字符串，重点注意上面的判断条件(你的 ida 中可能不叫 v17)</p>
+<pre><code class="language-c">if (v17 == 219)
+</code></pre>
+<p>只要我们能把 v17 的值修改为 219，那么就可以正确注册了。而 v17 来自函数 sub_140009D7C 的返回值，我们点击进入函数 sub_140009D7C，进去之后继续点击函数 sub_140308310</p>
+<pre><code class="language-c++">// attributes: thunk
+__int64 __fastcall sub_140009D7C(__int64 a1, __int64 a2, __int64 a3)
+{
+  return sub_140308310(a1, a2, a3);
+}
+
+// 中间省略的代码
+
+__int64 __fastcall sub_140308310(__int64 a1, __int64 a2, __int64 a3)
+{
+  unsigned int v3; // edi
+  int v6; // eax
+  int v7; // eax
+  int v8; // eax
+  unsigned int v9; // ecx
+  int v10; // eax
+  unsigned int v11; // ecx
+  int v12; // eax
+  unsigned int v13; // ecx
+
+  v3 = a2;
+  if ( *(_DWORD *)(a1 + 60) )
+    return 275i64;
+  v6 = CDockablePane::HitTest(a1, a2, a3);
+  // 省略的代码
+</code></pre>
+<p>我们只需要强制把 if 条件和 <code>return 275i64;</code> 强制修改为 219 即可。</p>
+<h3 id="4-patch-代码">4、patch 代码</h3>
+<p>在菜单中，选择 Options -&gt; General -&gt; Disassembly 中的 Number of opcode bytes 值修改为 8<br>
+<img src="https://raw.githubusercontent.com/recall704/oss/main/picgo/20220801085611.png" alt="alt|L|600" loading="lazy"><br>
+修改之后，hex view 中会显示 opcode 列<br>
+<img src="https://raw.githubusercontent.com/recall704/oss/main/picgo/20220801090337.png" alt="alt|L|800" loading="lazy"><br>
+在菜单中，选择 jump -&gt; jump to function，然后 ctrl + F，输入 sub_140308310，双击进入函数</p>
+<pre><code class="language-x86asm">.text:0000000140308323 74 10                   jz      short loc_140308335
+.text:0000000140308325 B8 13 01 00 00          mov     eax, 113h
+</code></pre>
+<p>这里需要修改两个地方</p>
+<ul>
+<li>把 jz 跳转去掉，直接改成 nop，nop 的十六进制为 90</li>
+<li>把 0x0113 修改成 219, 219 的十六进制为 0x00DB</li>
+</ul>
+<p>则，修改后的内容应该为</p>
+<pre><code>.text:0000000140308323 90 90
+.text:0000000140308325 B8 DB 00 00 00
+</code></pre>
+<p>选择要编辑的内容，然后在菜单中选择 Edit -&gt; Patch  program  -&gt; Change byte<br>
+<img src="https://raw.githubusercontent.com/recall704/oss/main/picgo/20220801090933.png" alt="alt|L|800" loading="lazy"></p>
+<h3 id="5-保存文件">5、保存文件</h3>
+<p>修改完成后，我们在菜单中选择 Edit -&gt; Patch  program  -&gt; Apply patches to input file，为了保险起见，我们在弹出的窗口中选择 Create backup<br>
+<img src="https://raw.githubusercontent.com/recall704/oss/main/picgo/20220801091125.png" alt="alt|L|600" loading="lazy"></p>
+<h3 id="6-验证">6、验证</h3>
+<p>打开修改后的文件，验证是否正常</p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/nS16WvRbU/" class="tag">
+                    逆向
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/iqKgS2s1Wd/" class="tag">
+                    逆向工程
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/3J1rnh9SEm/" class="tag">
+                    汇编
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/gfANTMpUYB/" class="tag">
+                    编辑器
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/s822TU796p/" class="tag">
+                    IDA
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/k8s-pod-diao-du-fen-xi-ling/">
+                  <h3 class="post-title">
+                    k8s pod 调度分析（零）
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

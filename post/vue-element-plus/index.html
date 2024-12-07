@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>vue-element-plus | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="一、完整引用
+安装
+npm install element-plus --save
+
+// main.js 或者 main.ts
+import { createApp } from 'vue'
+import ElementPlus from..." />
+    <meta name="keywords" content="vue" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">vue-element-plus</h2>
+            <div class="post-date">2024-07-22</div>
+            
+            <div class="post-content" v-pre>
+              <h2 id="一-完整引用">一、完整引用</h2>
+<p>安装</p>
+<pre><code class="language-bash">npm install element-plus --save
+</code></pre>
+<pre><code class="language-js">// main.js 或者 main.ts
+import { createApp } from 'vue'
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
+import App from './App.vue'
+
+const app = createApp(App)
+
+app.use(ElementPlus)
+app.mount('#app')
+</code></pre>
+<h2 id="二-按需引用">二、按需引用</h2>
+<p>安装</p>
+<pre><code class="language-bash"># npm install -D unplugin-vue-components unplugin-auto-import
+npm install unplugin-vue-components@0.25.2
+npm install unplugin-auto-import@0.16.0
+</code></pre>
+<p>使用</p>
+<pre><code class="language-js">// vue.config.js
+const { defineConfig } = require('@vue/cli-service');
+const AutoImport = require('unplugin-auto-import/webpack');
+const Components = require('unplugin-vue-components/webpack');
+const { ElementPlusResolver } = require('unplugin-vue-components/resolvers');
+
+module.exports = defineConfig({
+  transpileDependencies: true,
+  configureWebpack: {
+    plugins: [
+      AutoImport({
+        resolvers: [ElementPlusResolver()]
+      }),
+      Components({
+        resolvers: [ElementPlusResolver()]
+      })
+    ]
+  }
+});
+</code></pre>
+<p>验证</p>
+<pre><code class="language-vue">&lt;template&gt;
+  &lt;nav&gt;
+    &lt;router-link to=&quot;/&quot;&gt;Home&lt;/router-link&gt; |
+    &lt;router-link to=&quot;/about&quot;&gt;About&lt;/router-link&gt;
+
+    &lt;div class=&quot;mb-4&quot;&gt;
+      &lt;el-button&gt;Default&lt;/el-button&gt;
+      &lt;el-button type=&quot;primary&quot;&gt;Primary&lt;/el-button&gt;
+      &lt;el-button type=&quot;success&quot;&gt;Success&lt;/el-button&gt;
+      &lt;el-button type=&quot;info&quot;&gt;Info&lt;/el-button&gt;
+      &lt;el-button type=&quot;warning&quot;&gt;Warning&lt;/el-button&gt;
+      &lt;el-button type=&quot;danger&quot;&gt;Danger&lt;/el-button&gt;
+    &lt;/div&gt;
+  &lt;/nav&gt;
+  &lt;router-view /&gt;
+&lt;/template&gt;
+
+&lt;style&gt;
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  color: #2c3e50;
+}
+
+nav {
+  padding: 30px;
+}
+
+nav a {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+nav a.router-link-exact-active {
+  color: #42b983;
+}
+&lt;/style&gt;
+</code></pre>
+<h2 id="三-图标加载">三、图标加载</h2>
+<pre><code class="language-js">// src/plugins/icons.js
+import * as components from '@element-plus/icons-vue';
+export default {
+  install: (app) =&gt; {
+    for (const key in components) {
+      const componentConfig = components[key];
+      app.component(componentConfig.name, componentConfig);
+    }
+  },
+};
+</code></pre>
+<pre><code class="language-js">// src/main.js
+import { createApp } from 'vue';
+import ElementPlus from 'element-plus';
+import 'element-plus/dist/index.css';
++import elementIcon from './plugins/icons';
+import App from './App.vue';
+
+const app = createApp(App);
+
+app.use(ElementPlus);
++app.use(elementIcon);
+app.mount('#app');
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/tzHeQLfIo/" class="tag">
+                    vue
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/vue3-axios/">
+                  <h3 class="post-title">
+                    vue-axios
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>pod中使用kubectl | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="一、概述
+有时候我们希望在 k8s 的 pod 中执行一些命令，但是又不想为了一个简单的功能去写代码调用 API，而是直接使用 kubectl 命令
+二、制作 kubectl 镜像
+FROM debian:bullseye
+
+RUN apt..." />
+    <meta name="keywords" content="kubectl,pod,k8s" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">pod中使用kubectl</h2>
+            <div class="post-date">2023-06-18</div>
+            
+            <div class="post-content" v-pre>
+              <h1 id="一-概述">一、概述</h1>
+<p>有时候我们希望在 k8s 的 pod 中执行一些命令，但是又不想为了一个简单的功能去写代码调用 API，而是直接使用 kubectl 命令</p>
+<h1 id="二-制作-kubectl-镜像">二、制作 kubectl 镜像</h1>
+<pre><code class="language-Dockerfile">FROM debian:bullseye
+
+RUN apt-get update &amp;&amp; apt-get install -y curl \
+   &amp;&amp; curl -Lo /usr/bin/kubectl https://dl.k8s.io/release/v1.20.15/bin/linux/amd64/kubectl \
+   &amp;&amp; chmod +x /usr/bin/kubectl \
+   &amp;&amp; apt-get clean \
+   &amp;&amp; rm -rf /var/lib/apt/lists/*
+</code></pre>
+<pre><code>docker build -t win7/kubectl:v1.20.15 .
+</code></pre>
+<h2 id="三-配置-serviceaccount-及其-rbac-权限">三、配置  ServiceAccount 及其 RBAC 权限</h2>
+<p>一般情况下，我们是不期望 kubectl 拥有对 k8s 的所有权限的，而是指定其对某个 namespace 下的某些指定资源拥有权限。<br>
+比如我们希望执行 kubectl set image 命令来发布应用，那我们就希望对 deployment 有对应的修改权限， 下面我以 jenkins 为例，希望 jenkins 在构建结束之后，发布 namespace 为 gray 和 stable 下的 deployment app1</p>
+<pre><code class="language-yaml">---
+# 创建一个 sa ，用于发布应用
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sa-jenkins-release
+  namespace: jenkins
+---
+# 创建一个角色，拥有 对 pods、services、deployments 的操作权限
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: gray
+  name: role-jenkins-release
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;pods&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;, &quot;watch&quot;, &quot;create&quot;, &quot;update&quot;, &quot;patch&quot;, &quot;delete&quot;]
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;services&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;, &quot;watch&quot;, &quot;create&quot;, &quot;update&quot;, &quot;patch&quot;, &quot;delete&quot;]
+- apiGroups: [&quot;apps&quot;]
+  resources: [&quot;deployments&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;, &quot;watch&quot;, &quot;create&quot;, &quot;update&quot;, &quot;patch&quot;, &quot;delete&quot;]
+
+---
+# 创建一个角色，拥有 对 pods、services、deployments 的操作权限
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: stable
+  name: role-jenkins-release
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;pods&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;, &quot;watch&quot;, &quot;create&quot;, &quot;update&quot;, &quot;patch&quot;, &quot;delete&quot;]
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;services&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;, &quot;watch&quot;, &quot;create&quot;, &quot;update&quot;, &quot;patch&quot;, &quot;delete&quot;]
+- apiGroups: [&quot;apps&quot;]
+  resources: [&quot;deployments&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;, &quot;watch&quot;, &quot;create&quot;, &quot;update&quot;, &quot;patch&quot;, &quot;delete&quot;]
+
+---
+# 授予 sa 在 gray 下的权限
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: rb-jenkins-release
+  namespace: gray
+subjects:
+- kind: ServiceAccount 
+  name: sa-jenkins-release
+  namespace: jenkins
+roleRef:
+  kind: Role
+  name: role-jenkins-release
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# 授予 sa 在 stable 下的权限
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: rb-jenkins-release
+  namespace: stable
+subjects:
+- kind: ServiceAccount 
+  name: sa-jenkins-release
+  namespace: jenkins
+roleRef:
+  kind: Role
+  name: role-jenkins-release
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<h2 id="四-在-gray-和-stable-下创建一个-app1-用于测试">四、在 gray 和 stable 下创建一个 app1 用于测试</h2>
+<pre><code class="language-yaml">---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations: {}
+  labels:
+    k8s.kuboard.cn/name: app1
+  name: app1
+  namespace: gray
+  resourceVersion: '31734'
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s.kuboard.cn/name: app1
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        k8s.kuboard.cn/name: app1
+    spec:
+      containers:
+        - image: 'nginx:1.20.0'
+          imagePullPolicy: IfNotPresent
+          name: nginx
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+</code></pre>
+<h2 id="五-创建一个-kubectl-pod">五、创建一个 kubectl pod</h2>
+<pre><code class="language-yaml">---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations: {}
+  labels:
+    k8s.kuboard.cn/name: kubectl
+  name: kubectl
+  namespace: jenkins
+  resourceVersion: '31857'
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 0
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s.kuboard.cn/name: kubectl
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: '2023-06-18T13:42:43+08:00'
+      creationTimestamp: null
+      labels:
+        k8s.kuboard.cn/name: kubectl
+    spec:
+      automountServiceAccountToken: true
+      containers:
+        - command:
+            - tail
+            - '-f'
+            - /etc/hosts
+          image: 'win7/kubectl:v1.20.15'
+          imagePullPolicy: Always
+          name: c1
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: sa-jenkins-release
+      serviceAccountName: sa-jenkins-release
+      terminationGracePeriodSeconds: 30
+</code></pre>
+<p>这里我指定了 serviceAccount: sa-jenkins-release，这样在 pod 中执行 kubectl 命令时，就会使用 sa-jenkins-release 这个账号，而不是默认的 default 账号</p>
+<h2 id="六-在-kubeclt-pod-中执行命令">六、在 kubeclt pod 中执行命令</h2>
+<pre><code class="language-bash">kubectl get pod -n stable
+kubectl -n stable set image deployment/app1 nginx=nginx:1.23.0 &amp;&amp; kubectl -n stable rollout status deployment/app1
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/7bQ-tZ9Oo/" class="tag">
+                    kubectl
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/vkLND4FEq/" class="tag">
+                    pod
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/_Nfycvl4t/" class="tag">
+                    k8s
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/6h-GKqW17/">
+                  <h3 class="post-title">
+                    fio磁盘测试
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

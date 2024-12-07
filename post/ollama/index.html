@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>ollama | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="一、安装
+curl -fsSL https://ollama.com/install.sh | sh
+
+二、下载模型
+ollama pull llama3:8b
+
+三、运行
+运行 server
+export OLLAMA_HOST=0.0...." />
+    <meta name="keywords" content="AI,ollama,大模型" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">ollama</h2>
+            <div class="post-date">2024-04-21</div>
+            
+            <div class="post-content" v-pre>
+              <h2 id="一-安装">一、安装</h2>
+<pre><code>curl -fsSL https://ollama.com/install.sh | sh
+</code></pre>
+<h2 id="二-下载模型">二、下载模型</h2>
+<pre><code>ollama pull llama3:8b
+</code></pre>
+<h2 id="三-运行">三、运行</h2>
+<p>运行 server</p>
+<pre><code>export OLLAMA_HOST=0.0.0.0
+OLLAMA_MODELS=/data/ollma/models
+ollama serve
+</code></pre>
+<p>运行模型</p>
+<pre><code>ollama run llama3:8b
+</code></pre>
+<p>ollama 运行一段时间后会自动退出模型的加载，释放 GPU，可以使用下面的命令保持模型的加载</p>
+<h3 id="保持加载状态">保持加载状态</h3>
+<pre><code>curl http://localhost:11434/api/generate -d '{&quot;model&quot;: &quot;recall704/qwen:7b-moe-q4_k_m&quot;, &quot;keep_alive&quot;: -1}'
+</code></pre>
+<h3 id="取消加载状态">取消加载状态</h3>
+<pre><code>curl http://localhost:11434/api/generate -d '{&quot;model&quot;: &quot;recall704/qwen:7b-moe-q4_k_m&quot;, &quot;keep_alive&quot;: 0}'
+</code></pre>
+<h2 id="四-制作模型">四、制作模型</h2>
+<h3 id="41-下载-gguf-文件">4.1、下载 GGUF 文件</h3>
+<p>https://modelscope.cn/models/qwen/Qwen1.5-7B-Chat-GGUF/files</p>
+<h3 id="42-创建-modelfile-文件">4.2 创建 Modelfile 文件</h3>
+<pre><code>cat &gt; Modelfile &lt;&lt; \EOF
+FROM ./qwen1_5-7b-chat-q4_k_m.gguf
+
+# set the temperature to 1 [higher is more creative, lower is more coherent]
+PARAMETER temperature 0.5
+
+TEMPLATE &quot;&quot;&quot;{{ if and .First .System }}&lt;|im_start|&gt;system
+{{ .System }}&lt;|im_end|&gt;
+{{ end }}&lt;|im_start|&gt;user
+{{ .Prompt }}&lt;|im_end|&gt;
+&lt;|im_start|&gt;assistant
+{{ .Response }}&quot;&quot;&quot;
+
+# set the system message
+SYSTEM &quot;&quot;&quot;
+You are a helpful assistant.
+&quot;&quot;&quot;
+EOF
+</code></pre>
+<h3 id="43-制作自己的模型">4.3、制作自己的模型</h3>
+<pre><code>ollama create recall704/qwen:7b-moe-q4_k_m -f Modelfile
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/ebVDTjsW7/" class="tag">
+                    AI
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/vEV3SW3GcX/" class="tag">
+                    ollama
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/lJLM9Go7my/" class="tag">
+                    大模型
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/pull-docker-image-with-skopeo/">
+                  <h3 class="post-title">
+                    pull docker image with skopeo
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

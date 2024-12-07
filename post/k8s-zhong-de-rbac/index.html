@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>k8s 中的 RBAC | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="在前面的文章 权限、RBAC 和 ObjectPermission中，我详细介绍了 RBAC 的概念，k8s 中的 RBAC 和传统的 RBAC 又有一点点不同，我们一起来看看。
+
+一、什么时候需要配置 RBAC
+在你的应用需要访问 k8s..." />
+    <meta name="keywords" content="k8s,RBAC" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">k8s 中的 RBAC</h2>
+            <div class="post-date">2022-11-06</div>
+            
+            <div class="post-content" v-pre>
+              <p>在前面的文章 <a href="/post/quan-xian-rbac-he-objectpermission/">权限、RBAC 和 ObjectPermission</a>中，我详细介绍了 RBAC 的概念，k8s 中的 RBAC 和传统的 RBAC 又有一点点不同，我们一起来看看。</p>
+<!-- more -->
+<h2 id="一-什么时候需要配置-rbac">一、什么时候需要配置 RBAC</h2>
+<p>在你的应用需要访问 k8s 资源的时候，需要创建 ServiceAccount 并配置对应的权限。比如</p>
+<ul>
+<li>公有云厂商读取 svc 结合自身 LoadBalancer 服务来完成负载均衡</li>
+<li>开源项目的 operator 自定义了资源，需要配置自身账号能访问自定义的资源</li>
+<li>自己开发的应用需要读取 k8s 资源</li>
+</ul>
+<p>这里面常常包含几个对象：</p>
+<ul>
+<li>ServiceAccount</li>
+<li>ServiceAccount 需要访问的资源类型: Pod、Node、Secret、自定义资源 等等</li>
+<li>对资源的操作权限，主要是 读、写、执行，完整列表如下
+<ul>
+<li>create</li>
+<li>get</li>
+<li>delete</li>
+<li>list</li>
+<li>update</li>
+<li>edit</li>
+<li>watch</li>
+<li>exec</li>
+</ul>
+</li>
+</ul>
+<p>结合之前的  <a href="/post/quan-xian-rbac-he-objectpermission/">权限、RBAC 和 ObjectPermission</a>，ServiceAccount 对应了之前所说的用户，后面的权限有点像 ObjectPermission，但面向的是一个大类，而不是一个具体的对象的权限。</p>
+<h2 id="二-全局资源和非全局资源">二、全局资源和非全局资源</h2>
+<p>在 k8s 中，有些资源是全局的，不属于某个 namespace，比如 Node、StorageClass，有些资源是 namespace 级别的，所以在创建角色 Role的时候，要按资源类型分为 Role 和 ClusterRole</p>
+<p>下面来举几个例子</p>
+<h3 id="21-namespace-级别的权限配置">2.1 、namespace 级别的权限配置</h3>
+<pre><code class="language-yaml"># 一个可以访问某个租户下的所有 pod 的权限
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sa-user1
+  namespace: default
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sa-role-all-pod-perm
+  namespace: default
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;pods&quot;]
+  verbs: [&quot;*&quot;]
+
+# 关联用户和角色
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: rb-user1-all-pod-perm
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: sa-user1
+  namespace: default
+roleRef:
+  kind: Role
+  name: sa-role-all-pod-perm
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<h3 id="22-cluster-级别的权限配置">2.2、cluster 级别的权限配置</h3>
+<pre><code class="language-yaml">apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sa-user2
+  namespace: default
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  # &quot;namespace&quot; 被忽略，因为 ClusterRoles 不受名字空间限制
+  name: secret-reader
+rules:
+- apiGroups: [&quot;&quot;]
+  # 在 HTTP 层面，用来访问 Secret 资源的名称为 &quot;secrets&quot;
+  resources: [&quot;secrets&quot;]
+  verbs: [&quot;get&quot;, &quot;watch&quot;, &quot;list&quot;]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: read-secrets-global
+subjects:
+- kind: User
+  name: sa-user2  
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: secret-reader
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://howieyuen.github.io/docs/kubernetes/kube-apiserver/authentication/">Kubernetes 中的用户</a></li>
+</ul>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/_Nfycvl4t/" class="tag">
+                    k8s
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/oHH-DriEd/" class="tag">
+                    RBAC
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/huo-qu-rong-qi-zhong-de-ip/">
+                  <h3 class="post-title">
+                    获取容器中的IP
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

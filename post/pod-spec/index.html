@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Pod 字段详解 | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="Pod 作为 k8s 中的最小调度单位，是 k8s 中核心的核心内容，下面我们来看 Pod 有哪些字段，分别又有什么作用。
+
+
+
+
+一、TypeMeta 和 ObjectMeta
+二、Spec
+
+2.1 Volumes
+2.2 InitCo..." />
+    <meta name="keywords" content="spec,pod,k8s" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Pod 字段详解</h2>
+            <div class="post-date">2023-05-05</div>
+            
+            <div class="post-content" v-pre>
+              <p>Pod 作为 k8s 中的最小调度单位，是 k8s 中核心的核心内容，下面我们来看 Pod 有哪些字段，分别又有什么作用。</p>
+<!-- more -->
+<p><ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E4%B8%80-typemeta-%E5%92%8C-objectmeta">一、TypeMeta 和 ObjectMeta</a></li>
+<li><a href="#%E4%BA%8C-spec">二、Spec</a>
+<ul>
+<li><a href="#21-volumes">2.1 Volumes</a></li>
+<li><a href="#22-initcontainers">2.2 InitContainers</a></li>
+<li><a href="#23-containers">2.3 Containers</a></li>
+<li><a href="#24-ephemeralcontainers">2.4 EphemeralContainers</a></li>
+<li><a href="#25-restartpolicy">2.5 RestartPolicy</a></li>
+<li><a href="#26-terminationgraceperiodseconds">2.6 TerminationGracePeriodSeconds</a></li>
+<li><a href="#27-activedeadlineseconds">2.7 ActiveDeadlineSeconds</a></li>
+<li><a href="#28-dnspolicy">2.8 DNSPolicy</a></li>
+<li><a href="#29-nodeselector">2.9 NodeSelector</a></li>
+<li><a href="#210-serviceaccountname">2.10 ServiceAccountName</a></li>
+<li><a href="#211-automountserviceaccounttoken">2.11 AutomountServiceAccountToken</a></li>
+<li><a href="#212-nodename">2.12 NodeName</a></li>
+<li><a href="#212-securitycontext">2.12 SecurityContext</a></li>
+<li><a href="#213-imagepullsecrets">2.13 ImagePullSecrets</a></li>
+<li><a href="#214-hostname-subdomain%E5%92%8Csethostnameasfqdn">2.14 Hostname、Subdomain和SetHostnameAsFQDN</a></li>
+<li><a href="#215-affinity">2.15 Affinity</a></li>
+<li><a href="#216-schedulername">2.16 SchedulerName</a></li>
+<li><a href="#217-tolerations">2.17 Tolerations</a></li>
+<li><a href="#218-hostaliases">2.18 HostAliases</a></li>
+<li><a href="#219-priorityclassname">2.19 PriorityClassName</a></li>
+<li><a href="#220-priority">2.20 Priority</a></li>
+<li><a href="#221-dnsconfig">2.21 DNSConfig</a></li>
+<li><a href="#222-readinessgates">2.22 ReadinessGates</a></li>
+<li><a href="#223-runtimeclassname">2.23 RuntimeClassName</a></li>
+<li><a href="#224-overhead">2.24 Overhead</a></li>
+<li><a href="#225-enableservicelinks">2.25 EnableServiceLinks</a></li>
+<li><a href="#226-topologyspreadconstraints">2.26 TopologySpreadConstraints</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</p>
+<pre><code class="language-go">type Pod struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+
+	Spec PodSpec
+	Status PodStatus
+}
+</code></pre>
+<h2 id="一-typemeta-和-objectmeta">一、TypeMeta 和 ObjectMeta</h2>
+<p>这部分在 Deployment 字段详解中已经说明过了。</p>
+<h2 id="二-spec">二、Spec</h2>
+<pre><code class="language-go">type PodSpec struct {
+	Volumes []Volume
+	InitContainers []Container
+	Containers []Container
+	EphemeralContainers []EphemeralContainer
+	RestartPolicy RestartPolicy
+	TerminationGracePeriodSeconds *int64
+	ActiveDeadlineSeconds *int64
+	DNSPolicy DNSPolicy
+	NodeSelector map[string]string
+	ServiceAccountName string
+	AutomountServiceAccountToken *bool
+	NodeName string
+	SecurityContext *PodSecurityContext
+	ImagePullSecrets []LocalObjectReference
+	Hostname string
+	Subdomain string
+	SetHostnameAsFQDN *bool
+	Affinity *Affinity
+	SchedulerName string
+	Tolerations []Toleration
+	HostAliases []HostAlias
+	PriorityClassName string
+	Priority *int32
+	PreemptionPolicy *PreemptionPolicy
+	DNSConfig *PodDNSConfig
+	ReadinessGates []PodReadinessGate
+	RuntimeClassName *string
+	Overhead ResourceList
+	EnableServiceLinks *bool
+	TopologySpreadConstraints []TopologySpreadConstraint
+}
+</code></pre>
+<h3 id="21-volumes">2.1 Volumes</h3>
+<p>k8s 中定义多种类型的 volumes，主要包括 HostPath、EmptyDir、Secret、NFS、Glusterfs、PersistentVolumeClaim、DownwardAPI、ConfigMap 等</p>
+<pre><code class="language-yaml">volumes:
+- name: host-volume
+  hostPath:
+    path: /tmp/ 
+
+- name: empty-volume
+  emptyDir: {}
+
+- name: secret-volume
+  secret:
+    secretName: mysecret
+
+- name: pvc-volume
+  persistentVolumeClaim:
+    claimName: my-pvc 
+
+- name: config-volume
+  configMap: 
+    name: my-configmap
+</code></pre>
+<h3 id="22-initcontainers">2.2 InitContainers</h3>
+<p>InitContainers 是在工作 container 运行执行的运行一次的 container，执行完正常退出(exit code 为 0)，才会运行工作 container，它主要有以下作用</p>
+<ul>
+<li>执行初始化任务</li>
+</ul>
+<blockquote>
+<p>可以在 InitContainer 中执行一些应用容器启动前的初始化任务,如下载文件、初始化配置等。这些任务必须在应用容器启动前完成,可以通过 InitContainer 实现。</p>
+</blockquote>
+<ul>
+<li>依赖检查</li>
+</ul>
+<blockquote>
+<p>通过定义多个 InitContainer,并设置每个容器必须成功才能启动下一个容器,实现对环境和应用的依赖检查。如果任何一个 InitContainer 运行失败,Pod 都不会启动应用容器。<br>
+这可以确保应用容器启动所依赖的所有条件都已经满足,避免因依赖问题导致应用启动失败。</p>
+</blockquote>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo The app is running! &amp;&amp; sleep 3600']
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice; sleep 2; done;']
+  - name: init-mydb
+    image: busybox:1.28
+    command: ['sh', '-c', 'until nslookup mydb; do echo waiting for mydb; sleep 2; done;']
+</code></pre>
+<ul>
+<li>隔离 transient 状态</li>
+</ul>
+<blockquote>
+<p>将一些短暂的状态锁定在 InitContainer 中,而不影响应用容器。这可以让应用容器处于干净的状态启动,避免被一些临时状态影响。</p>
+</blockquote>
+<pre><code class="language-yaml">apiVersion: v1 
+kind: Pod
+metadata:
+  name: myapp-pod
+spec: 
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo The app is running! &amp;&amp; sleep 3600']
+  initContainers: 
+  - name: clone-repo 
+    image: alpine/git
+    command: 
+    - 'sh'
+    - '-c'
+    - &gt; 
+      apk add --no-cache openssl;
+      mkdir -p /repo;
+      git clone https://username:password@github.com/myorg/myrepo.git /repo;
+      rm -rf /.git;
+      rm /username;
+      rm /password;
+    volumeMounts:
+    - name: repo 
+      mountPath: /repo
+  volumes:
+  - name: repo
+    emptyDir: {} 
+</code></pre>
+<h3 id="23-containers">2.3 Containers</h3>
+<p>Containers 是 pod 中正在运行任务的容器，它可以有多个，多个容器之间共享以下资源：</p>
+<ul>
+<li>Network namespace</li>
+</ul>
+<blockquote>
+<p>Pod 中的所有容器共享同一个网络命名空间,拥有相同的 IP 和端口范围。这使得容器之间可以通过 localhost 直接通信。</p>
+</blockquote>
+<ul>
+<li>Storage volumes</li>
+</ul>
+<blockquote>
+<p>Pod 中定义的存储卷对所有容器可见,容器可以通过 Volume Mount 将存储卷挂载到自己的文件系统使用。</p>
+</blockquote>
+<ul>
+<li>相同的 PID namespace</li>
+</ul>
+<blockquote>
+<p>Pod 内的所有容器共享 PID 命名空间,可以看到彼此的进程。</p>
+</blockquote>
+<ul>
+<li>IPC namespace</li>
+</ul>
+<blockquote>
+<p>容器之间可以通过 SysV IPC 或 POSIX 共享内存等方式进行 IPC 通信。</p>
+</blockquote>
+<ul>
+<li>UTS namespace</li>
+</ul>
+<blockquote>
+<p>容器将看到相同的主机名和域名。</p>
+</blockquote>
+<p>虽然说容器间共享了 PID namespace，但是在一个容器中执行 ps -ef，是看不到另一个进程的，可以通过设置 shareProcessNamespace 为 true，比如</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    shareProcessNamespace: true
+  - name: shell
+    image: busybox
+    stdin: true
+    tty: true
+    shareProcessNamespace: true
+</code></pre>
+<p>如果我们想要在 shell 容器中，达到 nginx -s reload 的效果，就需要配置 shareProcessNamespace，使我们能够向 nginx 进程发送 SIGHUP 信号。</p>
+<h3 id="24-ephemeralcontainers">2.4 EphemeralContainers</h3>
+<p>临时容器，在我们运行的一些容器，为了精简镜像大小，往往没有安装所需的工具，这时我们就可以利用 临时容器，将容器加到现有的 pod 中</p>
+<p>具体可以参考 https://kubernetes.io/zh-cn/docs/tasks/debug/debug-application/debug-running-pod/#ephemeral-container</p>
+<h3 id="25-restartpolicy">2.5 RestartPolicy</h3>
+<p>RestartPolicy 用于设置 Pod 中容器重新启动策略。它有以下几个选项:</p>
+<ul>
+<li>Always:当容器终止时,总是重启容器。这是默认值。</li>
+<li>OnFailure:当容器终止且退出码非0时才重启容器。</li>
+<li>Never:当容器终止时,不重启容器。</li>
+<li>OnFailure:当容器终止且退出码为非0时才重启容器。在这种策略下,Pod 将一直运行,除非手动删除。</li>
+</ul>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: webserver-pod
+spec:
+  restartPolicy: OnFailure
+  containers:
+  - name: webserver
+    image: nginx
+</code></pre>
+<h3 id="26-terminationgraceperiodseconds">2.6 TerminationGracePeriodSeconds</h3>
+<p>TerminationGracePeriodSeconds 用于设置 Pod 中容器的优雅终止期。它指定了在 Pod 被删除时,容器等待终止的秒数。<br>
+在此期限内,容器可以完成工作,退出并清理资源。如果超过此期限还未成功终止,系统将立即终止容器。</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: webserver-pod
+spec:
+  terminationGracePeriodSeconds: 30
+  containers:
+  - name: webserver
+    image: nginx
+</code></pre>
+<p>这个 Pod 的 webserver 容器设置了 TerminationGracePeriodSeconds 为 30 秒。<br>
+这意味着:</p>
+<ul>
+<li>当删除此 Pod 时,Kubernetes 会发送 TERM 信号给 webserver 容器</li>
+<li>webserver 容器有 30 秒的时间用来正常退出并清理(处理完当前请求等)</li>
+<li>30 秒后,如果 webserver 容器还未退出,Kubernetes 将直接终止容器</li>
+<li>这使得 webserver 容器有机会优雅关闭并完成工作,避免突然终止造成的数据损失或资源泄露<br>
+如果未设置此值,容器会直接在 Pod 删除时立即终止。</li>
+</ul>
+<p>除了 TerminationGracePeriodSeconds，我们还有一个参数 PreStop，PreStop 会先执行，完成具体的清理之后会继续等待 TerminationGracePeriodSeconds 时间。<br>
+PreStop 会执行具体的逻辑，但 TerminationGracePeriodSeconds 只会等待特定的时间。</p>
+<h3 id="27-activedeadlineseconds">2.7 ActiveDeadlineSeconds</h3>
+<p>pod 运行的最长时间，到达该时间后 Pod 将会被杀掉，一般情况下不会设置该参数</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: sleep-pod 
+spec:
+  containers:
+  - name: alpine 
+    image: alpine 
+    command: [&quot;sleep&quot;, &quot;3600&quot;]
+  activeDeadlineSeconds: 100  # 最长运行时间 100 秒
+</code></pre>
+<p>这个 Pod 会一直睡眠 1 小时,但是由于设置了 ActiveDeadlineSeconds 为 100 秒,所以实际 Pod 会在 100 秒后被终止并重启。</p>
+<h3 id="28-dnspolicy">2.8 DNSPolicy</h3>
+<p>pod 中的程序访问域名时，解析域名的方式，一般是 ClusterFirst，即优先使用集群内的 dns 服务，比如CoreDNS 或者 kube-dns，然后在使用主机上的 /etc/resolv.conf 中的 nameserver 来解析域名。</p>
+<h3 id="29-nodeselector">2.9 NodeSelector</h3>
+<p>将 pod 调度到含有特定 label 的 node 上，比如</p>
+<pre><code class="language-yaml">apiVersion: v1 
+kind: Pod
+metadata: 
+  name: my-pod
+spec: 
+  containers: 
+  - name: my-container 
+    image: busybox 
+  nodeSelector: 
+    disktype: ssd
+</code></pre>
+<h3 id="210-serviceaccountname">2.10 ServiceAccountName</h3>
+<p>如果你的程序需要访问 k8s 的 API，则需要 认证+授权，则需要创建一个 ServiceAccount，同时配置 Role/ClusterRole 和 RoleBinding/ClusterRoleBinding，使其可以有权限访问 k8s API。</p>
+<p>一旦你设置了 ServiceAccountName，可以在代码中使用 创建 client，然后使用 client 访问 k8s 资源</p>
+<pre><code class="language-go">import (
+	&quot;context&quot;
+	&quot;fmt&quot;
+	&quot;time&quot;
+
+	&quot;k8s.io/apimachinery/pkg/api/errors&quot;
+	metav1 &quot;k8s.io/apimachinery/pkg/apis/meta/v1&quot;
+	&quot;k8s.io/client-go/kubernetes&quot;
+	&quot;k8s.io/client-go/rest&quot;
+)
+
+func main() {
+    // 创建使用 ServiceAccount 令牌的客户端配置
+    config, err := rest.InClusterConfig()  
+    if err != nil {
+        panic(err) 
+    }
+
+    // 使用客户端访问 API
+    clientset, err := kubernetes.NewForConfig(config) 
+    if err != nil {
+        panic(err)
+    }
+
+    pods, err := clientset.CoreV1().Pods(&quot;&quot;).List(ctx, metav1.ListOptions{})
+}
+</code></pre>
+<h3 id="211-automountserviceaccounttoken">2.11 AutomountServiceAccountToken</h3>
+<p>是否禁止挂载 ServiceAccountName 到目录 /var/run/secrets/kubernetes.io/serviceaccount，除非特殊情况，否则都是 true</p>
+<h3 id="212-nodename">2.12 NodeName</h3>
+<p>指定节点运行，当指定 NodeName 时，pod 不经过 scheduler，直接运行在指定 node 上</p>
+<h3 id="212-securitycontext">2.12 SecurityContext</h3>
+<p>SecurityContext 主要是从安全的角度，限制 Pod 和 Container 执行的一些权限，当同样的参数在 Pod 和 Container 中设置时，Container 中的值会覆盖 Pod 中的值，即 Container 中的优先级更高。</p>
+<pre><code class="language-go">type PodSecurityContext struct {
+	SELinuxOptions *SELinuxOptions `json:&quot;seLinuxOptions,omitempty&quot;`
+	WindowsOptions *WindowsSecurityContextOptions `json:&quot;windowsOptions,omitempty&quot;`
+	RunAsUser *int64 `json:&quot;runAsUser,omitempty&quot;`
+	RunAsGroup *int64 `json:&quot;runAsGroup,omitempty&quot;`
+	RunAsNonRoot *bool `json:&quot;runAsNonRoot,omitempty&quot;`
+	SupplementalGroups []int64 `json:&quot;supplementalGroups,omitempty&quot;`
+	FSGroup *int64 `json:&quot;fsGroup,omitempty&quot;`
+	Sysctls []Sysctl `json:&quot;sysctls,omitempty&quot;`
+	FSGroupChangePolicy *PodFSGroupChangePolicy `json:&quot;fsGroupChangePolicy,omitempty&quot;`
+	SeccompProfile *SeccompProfile `json:&quot;seccompProfile,omitempty&quot;`
+}
+</code></pre>
+<h3 id="213-imagepullsecrets">2.13 ImagePullSecrets</h3>
+<p>如果 Container 中的镜像，是私有仓库的镜像，则需要配置拉取镜像所需的认证信息</p>
+<pre><code class="language-bash">kubectl create secret docker-registry myregistrykey \
+  --docker-server=myregistry.example.com   \
+  --docker-username=DOCKER_USER \
+  --docker-password=DOCKER_PASSWORD \
+  --docker-email=DOCKER_EMAIL
+</code></pre>
+<p>创建好之后，就可以通过下面的方式配置</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: foo 
+spec:
+  containers:
+  - name: foo
+    image: myregistry.example.com/somerepo/someimage 
+  imagePullSecrets:
+  - name: myregistrykey
+</code></pre>
+<h3 id="214-hostname-subdomain和sethostnameasfqdn">2.14 Hostname、Subdomain和SetHostnameAsFQDN</h3>
+<p>配置 Hostname、Subdomain和SetHostnameAsFQDN 会生成相应的 DNS 记录，方便服务间的访问，具体参考官方文档，平时很少使用，这里不介绍了。</p>
+<h3 id="215-affinity">2.15 Affinity</h3>
+<p>亲和性主要是控制 Pod 的调度，包括下面三个类型</p>
+<pre><code class="language-go">type Affinity struct {
+	NodeAffinity    *NodeAffinity `json:&quot;nodeAffinity,omitempty&quot;`
+	PodAffinity     *PodAffinity `json:&quot;podAffinity,omitempty&quot;`
+	PodAntiAffinity *PodAntiAffinity `json:&quot;podAntiAffinity,omitempty&quot;`
+}
+</code></pre>
+<ul>
+<li>节点亲和性</li>
+</ul>
+<blockquote>
+<p>节点亲和性有两种，一种是 RequiredDuringSchedulingIgnoredDuringExecution，要求必须满足对应条件的 Node<br>
+PreferredDuringSchedulingIgnoredDuringExecution，要求节点最好满足该条件，对应的就是满足该条件的 Node 优先级更高</p>
+</blockquote>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: with-node-affinity
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/disk-type
+            operator: In
+            values:
+            - ssd
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 1
+        preference:
+          matchExpressions:
+          - key: another-node-label-key
+            operator: In
+            values:
+            - another-node-label-value
+  containers:
+  - name: with-node-affinity
+    image: ubuntu:18.04
+</code></pre>
+<ul>
+<li>pod 亲和性和反亲和性</li>
+</ul>
+<blockquote>
+<p>亲和性： 有时候，我们希望两个服务的 Pod 运行在同一个 Node 上，这样到 服务A -&gt; 服务 B，服务间访问的时候可以更快<br>
+反亲和性： 有时候我们希望 Pod 尽可能运行在不同的 Node 上，比如某些 Worker 类型的 Pod</p>
+</blockquote>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: with-pod-affinity 
+spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution: 
+      - labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values: 
+            - store
+        topologyKey: &quot;kubernetes.io/hostname&quot;
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values: 
+            - nginx
+        topologyKey: &quot;kubernetes.io/hostname&quot;
+  containers: 
+  - name: with-pod-affinity
+    image: ubuntu:18.04
+</code></pre>
+<h3 id="216-schedulername">2.16 SchedulerName</h3>
+<p>调度器名称，比如给需要 GPU 资源的 Pod，设置相应的调度器。这需要部署额外的调度器服务。</p>
+<h3 id="217-tolerations">2.17 Tolerations</h3>
+<p>有时候我们会在 Node 上增加 Taints，限制 Pod 调度到该 Pod 上，如果要允许调度到这些 Node 上，则要求 Pod 设置与 Taints 对应的 Tolerations</p>
+<h3 id="218-hostaliases">2.18 HostAliases</h3>
+<p>自定义 hosts</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: hostaliases-pod
+spec:
+  hostAliases:
+  - ip: &quot;127.0.0.1&quot;
+    hostnames:
+    - &quot;foo.local&quot;
+    - &quot;bar.local&quot;
+  - ip: &quot;10.1.2.3&quot;
+    hostnames:
+    - &quot;foo.remote&quot;
+    - &quot;bar.remote&quot; 
+  containers:
+  - name: cat-hosts
+    image: ubuntu:18.04
+    command: 
+    - cat
+    - /etc/hosts
+</code></pre>
+<p>容器启动之后，hostAliases 设置的条目被追加到了 /etc/hosts 中了</p>
+<pre><code># Kubernetes-managed hosts file. 
+127.0.0.1    localhost 
+::1        localhost ip6-localhost ip6-loopback 
+fe00::0        ip6-localnet
+ff00::0        ip6-mcastprefix 
+ff02::1        ip6-allnodes 
+ff02::2        ip6-allrouters 
+
+127.0.0.1    foo.local 
+127.0.0.1    bar.local
+10.1.2.3    foo.remote  
+10.1.2.3    bar.remote
+</code></pre>
+<h3 id="219-priorityclassname">2.19 PriorityClassName</h3>
+<p>pod 调度默认情况下是按创建顺序调度的，如果我们想让某些 Pod 优先调度，则可以创建 PriorityClass 并设置优先级，并在 Pod 中指定 PriorityClass</p>
+<pre><code class="language-yaml">apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 1000000              # 值越大，优先级越高
+globalDefault: false
+description: &quot;此优先级类应仅用于 XYZ 服务 Pod。&quot;
+</code></pre>
+<h3 id="220-priority">2.20 Priority</h3>
+<p>和 PriorityClassName 相似，都是设置 Pod 调度的优先级，不同的是 PriorityClassName 可以批量设置相同 PriorityClassName 名称 Pod 的优先级，而 Priority 只设置单个 Pod 的优先级。</p>
+<h3 id="221-dnsconfig">2.21 DNSConfig</h3>
+<p>默认情况下,Pod 会继承所在 Node 的 DNS 设置,并在其上添加 Kubernetes 的默认 DNS 服务。我们可以通过 DSNConfig 添加额外的参数</p>
+<pre><code class="language-yaml">apiVersion: v1 
+kind: Pod 
+metadata: 
+  name: dns-pod 
+spec: 
+  dnsConfig: 
+    nameservers: 
+    - 1.2.3.4     # 指定dns服务器
+    - 8.8.8.8 
+    searches: 
+    - ns1.svc.cluster-domain.example  # 指定搜索域
+    - my.dns.search.suffix 
+    options: 
+    - name: ndots 
+      value: &quot;2&quot;      # 设置DNS选项 
+  containers: 
+  - name: ...
+</code></pre>
+<h3 id="222-readinessgates">2.22 ReadinessGates</h3>
+<p>ReadinessGates 是高级的 readiness 配置，这里就不展开了。</p>
+<h3 id="223-runtimeclassname">2.23 RuntimeClassName</h3>
+<p>k8s 定义了 CRI 接口，只要实现了 CRI 接口的容器运行时都可以接入 k8s，比如</p>
+<ul>
+<li><a href="https://github.com/google/gvisor">gvisor</a></li>
+</ul>
+<pre><code class="language-bash">cat &gt; /etc/docker/daemon.json &lt;&lt; EOF 
+{
+    &quot;runtimes&quot;: {
+        &quot;gvisor&quot;: {
+            &quot;path&quot;: &quot;/usr/local/bin/runsc&quot;
+        }
+    }
+}
+EOF
+
+systemctl daemon-reload
+systemctl restart docker
+</code></pre>
+<pre><code class="language-yaml">apiVersion: node.k8s.io/v1beta1
+kind: RuntimeClass
+metadata:
+  name: gvisor  
+handler: gvisor
+</code></pre>
+<ul>
+<li><a href="https://github.com/kata-containers/kata-containers">kata</a></li>
+</ul>
+<pre><code class="language-shell">cat &gt; /etc/docker/daemon.json &lt;&lt; EOF 
+{
+  &quot;default-runtime&quot;: &quot;kata&quot;,
+  &quot;runtimes&quot;: {
+    &quot;kata&quot;: {
+      &quot;path&quot;: &quot;/usr/bin/kata-runtime&quot;
+    }
+  }
+}
+EOF
+
+systemctl daemon-reload
+systemctl restart docker
+</code></pre>
+<pre><code class="language-yaml">apiVersion: node.k8s.io/v1beta1
+kind: RuntimeClass
+metadata:
+  name: kata  
+handler: kata
+</code></pre>
+<ul>
+<li><a href="https://github.com/NVIDIA/nvidia-container-runtime">nvidia</a></li>
+</ul>
+<pre><code class="language-shell">cat &gt; /etc/docker/daemon.json &lt;&lt; EOF 
+{
+    &quot;runtimes&quot;: {
+        &quot;nvidia&quot;: {
+            &quot;path&quot;: &quot;/usr/bin/nvidia-container-runtime&quot;,
+            &quot;runtimeArgs&quot;: []
+        }
+    }
+}
+EOF
+</code></pre>
+<pre><code class="language-yaml">apiVersion: node.k8s.io/v1beta1
+kind: RuntimeClass
+metadata:
+  name: nvidia  
+handler: nvidia
+</code></pre>
+<p>则在 Pod 运行的时候，我们可以选择需要的 Runtime，当有多个 runtimeClass 时，推荐使用 <code>admission webhook</code>来动态设置 RuntimeClassName</p>
+<h3 id="224-overhead">2.24 Overhead</h3>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-overhead  
+spec:
+  containers:
+  - name: app
+    image: nginx
+  overhead:  # 设置Pod开销
+    cpu: 100m   # 100毫核CPU
+    memory: 100Mi # 100M内存 
+</code></pre>
+<p>这个 Pod 在被调度时,其 CPU 需求会是其容器 CPU 请求 + 100m,内存需求会是其容器内存请求 + 100Mi。<br>
+这可以避免 Pod 被调度到资源过于紧张的节点上,导致其运行状况不佳。开销值通常可以根据节点配置、运行的插件等来确定一个合理的值。</p>
+<h3 id="225-enableservicelinks">2.25 EnableServiceLinks</h3>
+<p>在 Kubernetes Pod 中,<code>.spec.enableServiceLinks</code> 字段用于控制 Pod 是否可以访问其他 <code>Service</code> 的 DNS 名称。<br>
+默认情况下,这个字段为 true。这意味着 Pod 会被注入相关 Service 的 DNS 记录,Pod 中的容器可以使用 <service-name> 这样的 DNS 名称访问对应的 <code>Service。</code><br>
+例如,如果有一个名为 <code>my-service</code> 的 Service,那么 Pod 中的容器可以使用 <code>my-service</code> 这个 DNS 名称来访问该 Service。<br>
+这是通过 kube-dns 或 CoreDNS 为 Service 提供的 DNS 服务实现的。每个新创建的 Service 都会有对应的 DNS 记录,从而实现服务发现。<br>
+但是在某些场景下,我们可能不希望 Pod 自动获取其他 Service 的 DNS 记录。这时可以将 <code>.spec.enableServiceLinks</code> 设置为 false,例如:</p>
+<pre><code class="language-yaml">apiVersion: v1 
+kind: Pod
+metadata: 
+  name: pod-service-links 
+spec:
+  enableServiceLinks: false     # 禁用服务链接
+  containers: 
+  - name: app
+    image: nginx
+</code></pre>
+<p>设置为 false 后,这个 Pod 中的容器将不能使用 my-service 这样的 DNS 名称来访问 Service。它们只能使用 Service 的 IP 地址或通过环境变量等手动配置来访问 Service。</p>
+<h3 id="226-topologyspreadconstraints">2.26 TopologySpreadConstraints</h3>
+<p>在 Kubernetes Pod 中,<code>.spec.topologySpreadConstraints</code> 字段用于为 Pod 指定拓扑分布约束(Topology Spread Constraints)。这可以控制 Pod 在集群内的分布模式,实现对类型为同类的 Pod 的分散部署。这属于高级用法，有需要了解详细内容的请参考官方文档。</p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/pRaRZrWdbS/" class="tag">
+                    spec
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/vkLND4FEq/" class="tag">
+                    pod
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/_Nfycvl4t/" class="tag">
+                    k8s
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/deployment-spec/">
+                  <h3 class="post-title">
+                    Deployment 字段详解
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

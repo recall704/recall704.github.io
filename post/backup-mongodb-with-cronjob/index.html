@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>使用cronjob备份mongodb | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="在 k8s 中使用 cronjob 备份 mongodb
+
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  annotations: {}
+  labels:
+    k8s...." />
+    <meta name="keywords" content="mongodb,database,k8s" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">使用cronjob备份mongodb</h2>
+            <div class="post-date">2023-12-25</div>
+            
+            <div class="post-content" v-pre>
+              <p>在 k8s 中使用 cronjob 备份 mongodb</p>
+<!-- more -->
+<pre><code class="language-yaml">---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  annotations: {}
+  labels:
+    k8s.kuboard.cn/name: mongodb-backup
+  name: mongodb-backup
+  namespace: ac-data
+spec:
+  concurrencyPolicy: Replace
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    metadata:
+      creationTimestamp: null
+      labels:
+        k8s.kuboard.cn/name: mongodb-backup
+    spec:
+      template:
+        metadata:
+          creationTimestamp: null
+        spec:
+          containers:
+            - command:
+                - /app/backup.sh
+              env:
+                - name: URI
+                  value: &gt;-
+                    mongodb://user:pwd@mongodb-name-headless.ac-data.svc:27017/db?replicaSet=rs0
+              image: 'mongodb:7.0.2-debian-11-r7'
+              imagePullPolicy: IfNotPresent
+              name: c0
+              resources: {}
+              securityContext:
+                runAsGroup: 0
+                runAsUser: 0
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /data
+                  name: volume-data
+                  subPath: db-backup
+                - mountPath: /app
+                  name: volume-scripts
+          dnsPolicy: ClusterFirst
+          restartPolicy: Never
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - name: volume-data
+              nfs:
+                path: /mnt
+                server: 10.11.123.111
+            - configMap:
+                defaultMode: 511
+                name: mongo-backup
+              name: volume-scripts
+  schedule: 5 0 * * *
+  successfulJobsHistoryLimit: 3
+  suspend: false
+---
+apiVersion: v1
+data:
+  backup.sh: |-
+    #!/bin/bash
+
+    ROOT_PATH=/data
+    BACKUP_PREFIX=mongodb_backup_
+    DATE=`TZ=Asia/Shanghai date +%Y-%m-%d_%H%M`
+    BACKUP_DIR=${ROOT_PATH}/${BACKUP_PREFIX}${DATE}
+    echo &quot;back up mongodb to ${BACKUP_DIR}&quot;
+
+    # run command to back
+    mongodump --uri=&quot;${URI}&quot; --out=${BACKUP_DIR}
+
+
+    # delete old backup
+    cutoff=$(date -d '7 days ago' +%s)
+    for folder in ${ROOT_PATH}/*; do
+      # if directory name startwith backup_ and create before 7 days ago will be deleted
+      if [[ -d &quot;$folder&quot; ]] &amp;&amp; [[ $(basename &quot;$folder&quot;) == &quot;$BACKUP_PREFIX&quot;* ]]; then
+        timestamp=$(echo &quot;$folder&quot; | grep -oP '\d{4}-\d{2}-\d{2}' | date -f - '+%s')
+        if (( timestamp &lt; cutoff )); then
+          echo &quot;directory ${folder} will be deleted&quot;
+          rm -rf &quot;$folder&quot;
+        fi
+      fi
+    done
+
+    echo &quot;Done&quot;
+kind: ConfigMap
+metadata:
+  annotations: {}
+  labels: {}
+  name: mongo-backup
+  namespace: ac-data
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/JUh6PfIJS/" class="tag">
+                    mongodb
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/ZXgTLoQXkx/" class="tag">
+                    database
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/_Nfycvl4t/" class="tag">
+                    k8s
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/pg-command/">
+                  <h3 class="post-title">
+                    postgresql常用命令
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>k8s 中获取租户资源占用情况 | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="import argparse
+from kubernetes import client, config
+from kubernetes.utils import parse_quantity
+import math
+
+# k8s 1.1..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">k8s 中获取租户资源占用情况</h2>
+            <div class="post-date">2024-06-10</div>
+            
+            <div class="post-content" v-pre>
+              <pre><code>import argparse
+from kubernetes import client, config
+from kubernetes.utils import parse_quantity
+import math
+
+# k8s 1.14
+# pip3 install kubernetes==11.0.0
+
+def human_readable_bytes(num_bytes):
+    if num_bytes &lt;= 0:
+        return &quot;0&quot;
+    units = [&quot;B&quot;, &quot;KB&quot;, &quot;MB&quot;, &quot;GB&quot;, &quot;TB&quot;, &quot;PB&quot;]
+
+    i = int(math.floor(math.log(num_bytes, 1024)))
+    power = math.pow(1024, i)
+    size = round(float(num_bytes) / power, 2)
+
+    return f&quot;{size} {units[i]}&quot;
+
+
+def get_resourcequota(client, namespace):
+    res = client.list_namespaced_resource_quota(namespace)
+    value = res.items[0] if len(res.items) &gt; 0 else None
+    if value and value.status.used:
+        cpu_request_used = parse_quantity(value.status.used.get(&quot;requests.cpu&quot;))
+        cpu_request_hard = parse_quantity(value.status.hard.get(&quot;requests.cpu&quot;))
+        mem_request_used = parse_quantity(value.status.used.get(&quot;requests.memory&quot;))
+        mem_request_hard = parse_quantity(value.status.hard.get(&quot;requests.memory&quot;))
+
+        cpu_limit_used = parse_quantity(value.status.used.get(&quot;limits.cpu&quot;))
+        cpu_limit_hard = parse_quantity(value.status.hard.get(&quot;limits.cpu&quot;))
+        mem_limit_used = parse_quantity(value.status.used.get(&quot;limits.memory&quot;))
+        mem_limit_hard = parse_quantity(value.status.hard.get(&quot;limits.memory&quot;))
+        print(
+            f'\trequest cpu =&gt; {cpu_request_used}/{cpu_request_hard}, usage =&gt; {cpu_request_used/cpu_request_hard * 100:.2f}%\n',
+            f'\tlimits cpu =&gt; {cpu_limit_used}/{cpu_limit_hard}, usage =&gt; {cpu_limit_used/cpu_limit_hard * 100:.2f}%\n',
+        )
+        print(
+            f'\trequest memory =&gt; {mem_request_used}/{mem_request_hard}, usage =&gt; {mem_request_used/mem_request_hard * 100:.2f}%\n',
+            f'\tlimits memory =&gt; {mem_limit_used}/{mem_limit_hard}, usage =&gt; {mem_limit_used/mem_limit_hard * 100:.2f}%\n',
+        )
+        print(&quot;\n&quot;)
+
+def get_pod_resource(client, namespace):
+    pods = client.list_namespaced_pod(namespace)
+
+    ns_requests_cpu_total = 0
+    ns_requests_memory_total = 0
+    ns_limits_cpu_total = 0
+    ns_limits_memory_total = 0
+    num_pod = 0
+    for pod in pods.items:
+        if &quot;ing&quot; not in pod.status.phase:
+            continue
+        else:
+            num_pod += 1
+        requests_cpu_total = 0
+        requests_memory_total = 0
+        limits_cpu_total = 0
+        limits_memory_total = 0
+        for container in pod.spec.containers:
+            requests_cpu = container.resources.requests.get(&quot;cpu&quot;)
+            requests_memory = container.resources.requests.get(&quot;memory&quot;)
+            limits_cpu = container.resources.limits.get(&quot;cpu&quot;)
+            limits_memory = container.resources.limits.get(&quot;memory&quot;)
+            if requests_cpu:
+                requests_cpu_total += parse_quantity(requests_cpu)
+            if requests_memory:
+                requests_memory_total += parse_quantity(requests_memory)
+            if limits_cpu:
+                limits_cpu_total += parse_quantity(limits_cpu)
+            if limits_memory:
+                limits_memory_total += parse_quantity(limits_memory)
+
+        print(
+            f&quot;pod_name =&gt; {pod.metadata.name} \n&quot;,
+            f&quot;\trequests_cpu =&gt; {requests_cpu_total}, requests_memory =&gt; {human_readable_bytes(requests_memory_total)}; limits_cpu =&gt; {limits_cpu_total}, limits_memory =&gt; {human_readable_bytes(limits_memory_total)}&quot;
+        )
+        ns_requests_cpu_total += requests_cpu_total
+        ns_requests_memory_total += requests_memory_total
+        ns_limits_cpu_total += limits_cpu_total
+        ns_limits_memory_total += limits_memory_total
+
+    print(
+        &quot;\n---------------------------------------------------------------------------------------------------------------------------\n&quot;,
+        f&quot;\tnum_pod =&gt; {num_pod}, requests_cpu =&gt; {ns_requests_cpu_total}, requests_memory =&gt; {human_readable_bytes(ns_requests_memory_total)}; limits_cpu =&gt; {ns_limits_cpu_total}, limits_memory =&gt; {human_readable_bytes(ns_limits_memory_total)}&quot;
+    )
+
+if __name__ == &quot;__main__&quot;:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(&quot;-n&quot;, &quot;--namespace&quot;, help=&quot;namespace to analyse&quot;, required=True)
+    args = parser.parse_args()
+
+    config.load_kube_config()
+
+    client = client.CoreV1Api()
+
+    print(
+        &quot;===========================================================================================================================\n&quot;,
+        &quot;namespace pods resources \n&quot;
+        &quot;===========================================================================================================================\n&quot;,
+    )
+    get_pod_resource(client, args.namespace)
+
+    # 这个放后面，放前面可能看不到
+    print(
+        &quot;\n&quot;,
+        &quot;===========================================================================================================================\n&quot;,
+        &quot;namespace resource quota \n&quot;,
+        &quot;===========================================================================================================================\n&quot;,
+    )
+    get_resourcequota(client, args.namespace) 
+</code></pre>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/pip-proxy-with-nexus3/">
+                  <h3 class="post-title">
+                    nexus3配置pip清华源
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

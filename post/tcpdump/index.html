@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>tcpdump | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="常用参数
+
+-i : 指定抓包接口，比如 tcpdump -i eth0
+-w file.pcap : 保存抓包结果到 file.pcap 文件，特别是需要将其交给 wireshark 分析的时候
+-nn : 不显示 host 和 port..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">tcpdump</h2>
+            <div class="post-date">2024-09-13</div>
+            
+            <div class="post-content" v-pre>
+              <p>常用参数</p>
+<ul>
+<li>-i : 指定抓包接口，比如 <code>tcpdump -i eth0</code></li>
+<li>-w file.pcap : 保存抓包结果到 file.pcap 文件，特别是需要将其交给 wireshark 分析的时候</li>
+<li>-nn : 不显示 host 和 port 名称</li>
+<li>-xx : HEX 和 ASCII 形式显示报文</li>
+<li>-c 5: 抓包数量</li>
+</ul>
+<p>FLAGS 标志位</p>
+<ul>
+<li><code>S</code>: SYN，一般是 TCP 三次握手的第一个包</li>
+<li><code>S.</code>: SYN+ACK，一般是 TCP 三次握手的第二个包</li>
+<li><code>.</code>: ACK，只有 ACK 表示普通的确认包， TCP 三次握手的第三个包为这个标志位</li>
+<li><code>F</code>: FIN</li>
+<li><code>P</code>: PUSH</li>
+<li><code>R</code>: RST</li>
+<li><code>U</code>: URG</li>
+<li><code>W</code>: ECNCWR</li>
+<li><code>E</code>: ECN-Echo</li>
+</ul>
+<h2 id="一-三次握手抓包">一、三次握手抓包</h2>
+<p>以 www.baidu.com 为例</p>
+<ul>
+<li>获取 www.baidu.com 的 IP，比如 180.101.50.242</li>
+<li>指定 IP 方式访问 www.baidu.com</li>
+</ul>
+<pre><code class="language-bash">curl -v --resolve www.baidu.com:443:180.101.50.242  https://www.baidu.com
+</code></pre>
+<ul>
+<li>抓包命令</li>
+</ul>
+<pre><code class="language-bash"># tcpdump -i wan -xx -nn 'tcp and (host 180.101.50.242)'
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on wan, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+
+
+16:37:58.706074 IP 192.168.71.99.58070 &gt; 180.101.50.242.443: Flags [S], seq 1603245117, win 64240, options [mss 1460,sackOK,TS val 3258622839 ecr 0,nop,wscale 7], length 0
+        0x0000:  7cc9 26ef 0374 68ed a42a 7bdc 0800 4500
+        0x0010:  003c f38b 4000 4006 57cd c0a8 4763 b465
+        0x0020:  32f2 e2d6 01bb 5f8f 943d 0000 0000 a002
+        0x0030:  faf0 1f9b 0000 0204 05b4 0402 080a c23a
+        0x0040:  a377 0000 0000 0103 0307
+16:37:58.717537 IP 180.101.50.242.443 &gt; 192.168.71.99.58070: Flags [S.], seq 2565271776, ack 1603245118, win 8192, options [mss 1380,sackOK,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,wscale 5], length 0
+        0x0000:  68ed a42a 7bdc 7cc9 26ef 0374 0800 4500
+        0x0010:  003c f38b 4000 3406 63cd b465 32f2 c0a8
+        0x0020:  4763 01bb e2d6 98e6 f0e0 5f8f 943e a012
+        0x0030:  2000 d9bc 0000 0204 0564 0402 0101 0101
+        0x0040:  0101 0101 0101 0103 0305
+16:37:58.717717 IP 192.168.71.99.58070 &gt; 180.101.50.242.443: Flags [.], ack 1, win 502, length 0
+        0x0000:  7cc9 26ef 0374 68ed a42a 7bdc 0800 4500
+        0x0010:  0028 f38c 4000 4006 57e0 c0a8 4763 b465
+        0x0020:  32f2 e2d6 01bb 5f8f 943e 98e6 f0e1 5010
+        0x0030:  01f6 5c53 0000
+</code></pre>
+<h2 id="二-icmp-抓包">二、ICMP 抓包</h2>
+<pre><code class="language-bash"># tcpdump -i wan -xx -nn 'icmp and (host 180.101.50.242)'
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on wan, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+16:46:37.271699 IP 192.168.71.99 &gt; 180.101.50.242: ICMP echo request, id 6, seq 13, length 64
+        0x0000:  7cc9 26ef 0374 68ed a42a 7bdc 0800 4500
+        0x0010:  0054 614d 4000 4001 e9f8 c0a8 4763 b465
+        0x0020:  32f2 0800 6673 0006 000d ed1a e366 0000
+        0x0030:  0000 fe24 0400 0000 0000 1011 1213 1415
+        0x0040:  1617 1819 1a1b 1c1d 1e1f 2021 2223 2425
+        0x0050:  2627 2829 2a2b 2c2d 2e2f 3031 3233 3435
+        0x0060:  3637
+16:46:37.281541 IP 180.101.50.242 &gt; 192.168.71.99: ICMP echo reply, id 6, seq 13, length 64
+        0x0000:  68ed a42a 7bdc 7cc9 26ef 0374 0800 4500
+        0x0010:  0054 614d 4000 3401 f5f8 b465 32f2 c0a8
+        0x0020:  4763 0000 6e73 0006 000d ed1a e366 0000
+        0x0030:  0000 fe24 0400 0000 0000 1011 1213 1415
+        0x0040:  1617 1819 1a1b 1c1d 1e1f 2021 2223 2425
+        0x0050:  2627 2829 2a2b 2c2d 2e2f 3031 3233 3435
+        0x0060:  3637
+16:46:38.272985 IP 192.168.71.99 &gt; 180.101.50.242: ICMP echo request, id 6, seq 14, length 64
+        0x0000:  7cc9 26ef 0374 68ed a42a 7bdc 0800 4500
+        0x0010:  0054 617a 4000 4001 e9cb c0a8 4763 b465
+        0x0020:  32f2 0800 6a6d 0006 000e ee1a e366 0000
+        0x0030:  0000 f929 0400 0000 0000 1011 1213 1415
+        0x0040:  1617 1819 1a1b 1c1d 1e1f 2021 2223 2425
+        0x0050:  2627 2829 2a2b 2c2d 2e2f 3031 3233 3435
+        0x0060:  3637
+16:46:38.282791 IP 180.101.50.242 &gt; 192.168.71.99: ICMP echo reply, id 6, seq 14, length 64
+        0x0000:  68ed a42a 7bdc 7cc9 26ef 0374 0800 4500
+        0x0010:  0054 617a 4000 3401 f5cb b465 32f2 c0a8
+        0x0020:  4763 0000 726d 0006 000e ee1a e366 0000
+        0x0030:  0000 f929 0400 0000 0000 1011 1213 1415
+        0x0040:  1617 1819 1a1b 1c1d 1e1f 2021 2223 2425
+        0x0050:  2627 2829 2a2b 2c2d 2e2f 3031 3233 3435
+        0x0060:  3637
+</code></pre>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/vue-element-plus/">
+                  <h3 class="post-title">
+                    vue-element-plus
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

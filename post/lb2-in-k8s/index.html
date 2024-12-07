@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Kubernetes中基于二层的负载均衡实现 | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="k8s 中的 svc，除了 clusterIP 和 nodePort 之外，还有一个 LoadBalancer，一般来说，公有云厂商都会有自己的 LB 服务，那么如果我们想在 bare metal 上实现自己的 LoadBalancer ，..." />
+    <meta name="keywords" content="负载均衡,LB,k8s" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Kubernetes中基于二层的负载均衡实现</h2>
+            <div class="post-date">2022-11-02</div>
+            
+            <div class="post-content" v-pre>
+              <p>k8s 中的 svc，除了 clusterIP 和 nodePort 之外，还有一个 LoadBalancer，一般来说，公有云厂商都会有自己的 LB 服务，那么如果我们想在 bare metal 上实现自己的 LoadBalancer ，该如何实现呢？</p>
+<!-- more -->
+<h2 id="一-概述">一、概述</h2>
+<p>二层负载均衡的理论基础，是 arp 协议(Address Resolution Protocol)和 ndp 协议(Neighbor Discovery Protocol)。</p>
+<p>假设 k8s 存在以下 node，信息如下</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">name</th>
+<th style="text-align:left">IP</th>
+<th style="text-align:left">mac</th>
+<th style="text-align:left">iface</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">node1</td>
+<td style="text-align:left">192.168.37.101</td>
+<td style="text-align:left">00:0c:29:a1:98:bc</td>
+<td style="text-align:left">eth0</td>
+</tr>
+<tr>
+<td style="text-align:left">node2</td>
+<td style="text-align:left">192.168.37.102</td>
+<td style="text-align:left">00:0c:29:11:9a:b3</td>
+<td style="text-align:left">eth0</td>
+</tr>
+<tr>
+<td style="text-align:left">node3</td>
+<td style="text-align:left">192.168.37.103</td>
+<td style="text-align:left">00:0c:29:64:cc:26</td>
+<td style="text-align:left">eth0</td>
+</tr>
+<tr>
+<td style="text-align:left">node4</td>
+<td style="text-align:left">192.168.37.104</td>
+<td style="text-align:left">00:0c:29:64:2c:47</td>
+<td style="text-align:left">eth0</td>
+</tr>
+</tbody>
+</table>
+<p>假设我们要自己实现二层的 lb，名称为 lb2，可以这样实现：</p>
+<ul>
+<li>在广播域内选择一个未被使用的 IP 作为 VIP，比如 <code>10.31.8.200</code></li>
+<li>在 node1、node2、node3 上部署应用 lb2，通过 k8s leader 选举 node1 为 leader，node1 的 mac 地址 <code>00:0c:29:a1:98:bc</code></li>
+<li>lb2 要在 node1 的 eth0 网卡上实现 arp 响应功能，响应从广播域内发过来的 arp 请求，如果请求的 ip 是 <code>10.31.8.200</code>，返回 node1 eth0 的 mac 地址</li>
+<li>当流量来自 <code>10.31.8.200</code> 时，将通过 node1 转发到实际的 pod</li>
+</ul>
+<p>如果 node1 出现故障或宕机</p>
+<ul>
+<li>node2 通过 leader 选举获得 leader</li>
+<li>node2 发送 arp 广播包，宣告 <code>10.31.8.200</code> 的 mac 地址为 node2 的 mac 地址 <code>00:0c:29:11:9a:b3</code></li>
+<li>lb2 要在 node2 上实现 arp 响应功能，抢答从广播域内发过来的 arp 请求，返回 node2 的 mac 地址</li>
+<li>当流量来自 <code>10.31.8.200</code> 时，将通过 node2 转发到实际的 pod</li>
+</ul>
+<p>参考下图<br>
+<img src="https://recall704.github.io/post-images/1692540862832.png" alt="" loading="lazy"></p>
+<h2 id="二-layer2-lb-实现的一些细节">二、layer2 LB 实现的一些细节</h2>
+<h3 id="1-arp-内核参数的配置">1、arp 内核参数的配置</h3>
+<p>由于 <code>10.31.8.200</code> 不是任何网卡的实际 IP，为了实现返回这个 IP 的 mac 地址，我们需要修改<a href="https://www.cnblogs.com/hyl8218/p/9050836.html">arp内核参数</a> <code>arp_ignore</code>和<code>arp_announce</code>，对应到 k8s 上，就是需要将 <a href="https://kubernetes.io/docs/reference/config-api/kube-proxy-config.v1alpha1/">strictARP</a>设置为 true</p>
+<h3 id="2-arp-广播与响应">2、arp 广播与响应</h3>
+<h4 id="21-arp-的广播">2.1、arp 的广播</h4>
+<p>arp 的广播相对比较容易实现，按照 arp 协议编写对应的代码即可，在 arp 的请求中，将目标写为 <code>FF:FF:FF:FF</code>即可。</p>
+<pre><code class="language-go">    hwAddr, err := a.resolveIP(nodeIP)
+    if err != nil {
+		// ...
+    }
+	// 缓存 vip 和 node 的 mac 地址
+    a.setMac(ip.String(), hwAddr)
+	fb, err := generateArp(
+		a.intf.HardwareAddr,
+		op,
+		hwAddr,             // node mac address =&gt; 00:0c:29:a1:98:bc
+		ip,                 // vip: 10.31.8.200
+		ethernet.Broadcast, // net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+		ip,                 // vip: 10.31.8.200
+	)
+</code></pre>
+<h4 id="22-arp响应">2.2 arp响应</h4>
+<p>arp 的响应需要指定网卡，一般是node ip 对应的网卡</p>
+<pre><code class="language-go">    // iface.Name = eth0
+    ctrl.Log.Info(fmt.Sprintf(&quot;use interface %s to speak arp&quot;, iface.Name))
+
+    if v4 {
+        speaker, err := newARPSpeaker(iface)
+        if err != nil {
+            return nil, err
+        }
+
+        return speaker, nil
+    }
+</code></pre>
+<pre><code class="language-go">    // 当收到的 ip 是 10.31.8.200，从缓存 map 中读取当前机器的 mac 地址
+    hwAddr := a.getMac(pkt.TargetIP.String())
+
+    if hwAddr == nil {
+        return dropReasonUnknowTargetIP
+    }
+    // ...
+    fb, err := generateArp(
+        a.intf.HardwareAddr,
+        arp.OperationReply,
+        *hwAddr,                // mac 地址，比如 node1 的 mac 地址 00:0c:29:a1:98:bc
+        pkt.TargetIP,           // IP， 这里为 10.31.8.200
+        pkt.SenderHardwareAddr, // 源 mac 地址
+        pkt.SenderIP,           // 源IP
+
+    )
+</code></pre>
+<h2 id="三-lb-在-kubernetes-中的创建">三、LB 在 kubernetes 中的创建</h2>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  annotations:
+    lb2: 10.31.8.200
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: nginx
+  type: LoadBalancer
+  loadBalancerIP: 10.31.8.200
+status:
+  loadBalancer:
+    ingress:
+    - ip: 10.31.8.200
+</code></pre>
+<p>在我们的 LB 实现程序中，可以 watch k8s svc 资源的创建，如果含有特定的 label 或者 annotation，我们可以配置 10.31.8.200 =&gt; svc-nginx<br>
+可以通过 ipvs 来完成流量的转发，将流量转发到对应的 endpoint 上</p>
+<pre><code class="language-bash">ipvsadm -A -t 10.31.8.200:80 -s rr
+ipvsadm -a -t 10.31.8.200:80 -r 10.8.65.15:80
+ipvsadm -a -t 10.31.8.200:80 -r 10.8.65.16:80
+ipvsadm -a -t 10.31.8.200:80 -r 10.8.65.12:80
+# ipvsadm -ln
+TCP  10.31.8.200 rr
+  -&gt; 10.8.65.15:80                Masq    1      0          0
+  -&gt; 10.8.65.16:80                Masq    1      0          0
+  -&gt; 10.8.66.12:80                Masq    1      0          0
+</code></pre>
+<h2 id="四-客户端的流量访问">四、客户端的流量访问</h2>
+<p>由于 LB 服务会向整个广播域宣告 ARP，所以 node4 默认会存有 10.31.8.200 的 mac 地址，如果 arp 过期，也可以通过 arp 请求获取到 mac 地址</p>
+<pre><code>who has 10.31.8.200 ? Tell 192.168.37.104
+</code></pre>
+<p>有了 mac 地址之后，就可以开始通信了，当流量到达 node1，再通过 ipvs 转发到实际的 Pod 上去。</p>
+<h2 id="五-lb-的开源实现">五、LB 的开源实现</h2>
+<p>开源的 <a href="https://github.com/metallb/metallb">metalb</a> 和 <a href="https://github.com/openelb/openelb">openelb</a> 中，都有二层的实现，基本原理与上面相似。</p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/VP6SmnGlh/" class="tag">
+                    负载均衡
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/6EIVcHjjn-/" class="tag">
+                    LB
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/_Nfycvl4t/" class="tag">
+                    k8s
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/k8s-zhong-pod-de-chuang-jian-liu-cheng/">
+                  <h3 class="post-title">
+                    k8s 中 pod 的创建流程
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>jenkinsci(草稿) | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="一、安装 jenkins
+helm repo add jenkinsci https://charts.jenkins.io
+helm repo update
+kubectl create ns jenkins
+helm upgrade -..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">jenkinsci(草稿)</h2>
+            <div class="post-date">2023-06-18</div>
+            
+            <div class="post-content" v-pre>
+              <h1 id="一-安装-jenkins">一、安装 jenkins</h1>
+<pre><code>helm repo add jenkinsci https://charts.jenkins.io
+helm repo update
+kubectl create ns jenkins
+helm upgrade --install jenkins jenkinsci/jenkins -n jenkins --create-namespace -f values.yaml
+</code></pre>
+<pre><code class="language-yaml"># # =================================================================================================
+# # 自定义配置
+# # =================================================================================================
+# # 1. 修改需要安装的插件
+# #    这里额外增加了 ws-cleanup 和中文语言包
+# controller:
+#   installPlugins:
+#     - kubernetes:3937.vd7b_82db_e347b_
+#     - workflow-aggregator:596.v8c21c963d92d
+#     - git:5.1.0
+#     - ws-cleanup:0.45
+#     - localization-zh-cn:1.0.24
+#     - configuration-as-code:1647.ve39ca_b_829b_42
+# # ---------------------------------------------------------------------------
+# # 2. 修改默认密码
+# controller:
+#   adminPassword: &quot;123321&quot;
+# # ---------------------------------------------------------------------------
+# # 3. 修改执行并发数
+# controller:
+#   numExecutors: 10
+# # ---------------------------------------------------------------------------
+# # 4. 开启 NodePort 方式访问
+# controller:
+#   serviceType: NodePort
+
+
+controller:
+  installPlugins:
+    - kubernetes:3937.vd7b_82db_e347b_
+    - workflow-aggregator:596.v8c21c963d92d
+    - git:5.1.0
+    - ws-cleanup:0.45
+    - localization-zh-cn:1.0.24
+    - configuration-as-code:1647.ve39ca_b_829b_42
+  adminPassword: &quot;123456&quot;
+  numExecutors: 10
+  serviceType: NodePort
+</code></pre>
+<p>https://plugins.jenkins.io/kubernetes/</p>
+<pre><code class="language-yaml">pipeline {
+  agent {
+    kubernetes {
+      yaml &quot;&quot;&quot;
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins: worker
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command: [&quot;/busybox/cat&quot;]
+    tty: true
+    volumeMounts:
+      - name: dockercred
+        mountPath: /root/.docker/
+  volumes:
+  - name: dockercred
+    secret:
+      secretName: dockercred
+&quot;&quot;&quot;
+    }
+  }
+  stages {
+    stage('Stage 1: Build with Kaniko') {
+      steps {
+        container('kaniko') {
+          sh '/kaniko/executor --context=git://github.com/repository/project.git \
+                  --destination=repository/image:tag \
+                  --insecure \
+                  --skip-tls-verify  \
+                  -v=debug'
+        }
+      }
+    }  
+  }
+}
+</code></pre>
+<p>example</p>
+<pre><code class="language-jenkins">podTemplate(containers: [
+    containerTemplate(name: 'maven', image: 'maven:3.8.1-jdk-8', command: 'sleep', args: '99d'),
+    containerTemplate(name: 'golang', image: 'golang:1.16.5', command: 'sleep', args: '99d')
+  ]) {
+
+    node(POD_LABEL) {
+        stage('Get a Maven project') {
+            git 'https://github.com/jenkinsci/kubernetes-plugin.git'
+            container('maven') {
+                stage('Build a Maven project') {
+                    sh 'echo hello world'
+                }
+            }
+        }
+
+        stage('Get a Golang project') {
+            git url: 'https://github.com/hashicorp/terraform.git', branch: 'main'
+            container('golang') {
+                stage('Build a Go project') {
+                    sh '''
+                    mkdir -p /go/src/github.com/hashicorp
+                    ln -s `pwd` /go/src/github.com/hashicorp/terraform
+                    go mod download
+                    cd /go/src/github.com/hashicorp/terraform &amp;&amp; make
+                    '''
+                }
+            }
+        }
+
+    }
+}
+</code></pre>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/kubectl-in-pod/">
+                  <h3 class="post-title">
+                    pod中使用kubectl
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

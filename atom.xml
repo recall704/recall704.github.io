@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://recall704.github.io</id>
+    <title>走剧情的NPC</title>
+    <updated>2024-12-07T18:16:17.190Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://recall704.github.io"/>
+    <link rel="self" href="https://recall704.github.io/atom.xml"/>
+    <subtitle>学无先后，达者为师</subtitle>
+    <logo>https://recall704.github.io/images/avatar.png</logo>
+    <icon>https://recall704.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2024, 走剧情的NPC</rights>
+    <entry>
+        <title type="html"><![CDATA[playwright]]></title>
+        <id>https://recall704.github.io/post/playwright/</id>
+        <link href="https://recall704.github.io/post/playwright/">
+        </link>
+        <updated>2024-12-07T18:12:43.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[tcpdump]]></title>
+        <id>https://recall704.github.io/post/tcpdump/</id>
+        <link href="https://recall704.github.io/post/tcpdump/">
+        </link>
+        <updated>2024-09-12T16:06:47.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[vue-element-plus]]></title>
+        <id>https://recall704.github.io/post/vue-element-plus/</id>
+        <link href="https://recall704.github.io/post/vue-element-plus/">
+        </link>
+        <updated>2024-07-21T16:02:27.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[vue-axios]]></title>
+        <id>https://recall704.github.io/post/vue3-axios/</id>
+        <link href="https://recall704.github.io/post/vue3-axios/">
+        </link>
+        <updated>2024-07-21T16:01:07.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[k8s获取node权限]]></title>
+        <id>https://recall704.github.io/post/nsenter-node/</id>
+        <link href="https://recall704.github.io/post/nsenter-node/">
+        </link>
+        <updated>2024-06-10T15:30:25.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[k8s 中获取租户资源占用情况]]></title>
+        <id>https://recall704.github.io/post/namespaced-quota/</id>
+        <link href="https://recall704.github.io/post/namespaced-quota/">
+        </link>
+        <updated>2024-06-10T15:27:26.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[nexus3配置pip清华源]]></title>
+        <id>https://recall704.github.io/post/pip-proxy-with-nexus3/</id>
+        <link href="https://recall704.github.io/post/pip-proxy-with-nexus3/">
+        </link>
+        <updated>2024-06-02T09:30:24.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[nexus3搭建]]></title>
+        <id>https://recall704.github.io/post/y4lM34oo3/</id>
+        <link href="https://recall704.github.io/post/y4lM34oo3/">
+        </link>
+        <updated>2024-06-02T09:28:47.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[haproxy]]></title>
+        <id>https://recall704.github.io/post/haproxy-cfg/</id>
+        <link href="https://recall704.github.io/post/haproxy-cfg/">
+        </link>
+        <updated>2024-05-15T15:24:43.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[langchain-with-ollama]]></title>
+        <id>https://recall704.github.io/post/langchain-with-ollama/</id>
+        <link href="https://recall704.github.io/post/langchain-with-ollama/">
+        </link>
+        <updated>2024-05-13T12:14:16.000Z</updated>
+    </entry>
+</feed>

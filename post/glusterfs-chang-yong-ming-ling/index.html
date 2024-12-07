@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>glusterfs 常用命令 | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="查看卷信息
+gluster volume info
+
+为存储池添加/移除服务器节点
+在其中一个节点上操作即可：
+# gluster peer probe &lt;SERVER&gt;
+# gluster peer detach &lt;SE..." />
+    <meta name="keywords" content="glusterfs" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">glusterfs 常用命令</h2>
+            <div class="post-date">2022-11-24</div>
+            
+            <div class="post-content" v-pre>
+              <p>查看卷信息</p>
+<pre><code>gluster volume info
+</code></pre>
+<p>为存储池添加/移除服务器节点</p>
+<pre><code>在其中一个节点上操作即可：
+# gluster peer probe &lt;SERVER&gt;
+# gluster peer detach &lt;SERVER&gt;
+注意，移除节点时，需要提前将该节点上的Brick移除。
+
+查看所有节点的基本状态（显示的时候不包括本节点）：
+# gluster peer status
+</code></pre>
+<p>挂载分区</p>
+<pre><code># mount -t ext4 /dev/sdd1 /mnt/brick1
+</code></pre>
+<p>创建/启动/停止/删除卷</p>
+<pre><code># gluster volume create &lt;NEW-VOLNAME&gt;[stripe &lt;COUNT&gt; | replica &lt;COUNT&gt;] [transport [tcp | rdma | tcp,rdma]] &lt;NEW-BRICK1&gt; &lt;NEW-BRICK2&gt; &lt;NEW-BRICK3&gt; &lt;NEW-BRICK4&gt;...
+# gluster volume start &lt;VOLNAME&gt;
+# gluster volume stop &lt;VOLNAME&gt;
+# gluster volume delete &lt;VOLNAME&gt;
+
+注意，删除卷的前提是先停止卷。
+</code></pre>
+<p>客户端以glusterfs方式挂载</p>
+<pre><code># mount -t glusterfs &lt;SERVER&gt;:/&lt;VOLNAME&gt;&lt;MOUNTDIR&gt;
+对于OpenStack，计算和控制节点都要挂载/var/lib/nova/instances，控制节点还要挂载/var/lib/glance/images。
+</code></pre>
+<p>查看卷信息</p>
+<pre><code>列出集群中的所有卷：
+# gluster volume list
+
+查看集群中的卷信息：
+# gluster volume info [all]
+
+查看集群中的卷状态：
+# gluster volume status [all]
+# gluster volume status &lt;VOLNAME&gt; [detail| clients | mem | inode | fd]
+
+查看本节点的文件系统信息：
+# df -h [&lt;MOUNT-PATH&gt;]
+
+查看本节点的磁盘信息：
+# fdisk -l
+</code></pre>
+<p>配置卷</p>
+<pre><code># gluster volume set &lt;VOLNAME&gt; &lt;OPTION&gt; &lt;PARAMETER&gt;
+</code></pre>
+<p>扩展卷</p>
+<pre><code># gluster volume add-brick &lt;VOLNAME&gt; &lt;NEW-BRICK&gt;
+注意，如果是复制卷或者条带卷，则每次添加的Brick数必须是replica或者stripe的整数倍。
+</code></pre>
+<p>收缩卷</p>
+<pre><code>先将数据迁移到其它可用的Brick，迁移结束后才将该Brick移除：
+# gluster volume remove-brick &lt;VOLNAME&gt; &lt;BRICK&gt; start
+
+在执行了start之后，可以使用status命令查看移除进度：
+# gluster volume remove-brick &lt;VOLNAME&gt; &lt;BRICK&gt; status
+
+不进行数据迁移，直接删除该Brick：
+# gluster volume remove-brick &lt;VOLNAME&gt; &lt;BRICK&gt; commit
+
+注意，如果是复制卷或者条带卷，则每次移除的Brick数必须是replica或者stripe的整数倍。
+</code></pre>
+<p>12.迁移卷</p>
+<pre><code>使用start命令开始进行迁移：
+# gluster volume replace-brick &lt;VOLNAME&gt; &lt;BRICK&gt; &lt;NEW-BRICK&gt; start
+
+在数据迁移过程中，可以使用pause命令暂停迁移：
+# gluster volume replace-brick &lt;VOLNAME&gt; &lt;BRICK&gt; &lt;NEW-BRICK&gt; pause
+
+在数据迁移过程中，可以使用abort命令终止迁移：
+# gluster volume replace-brick &lt;VOLNAME&gt; &lt;BRICK&gt; &lt;NEW-BRICK&gt; abort
+
+在数据迁移过程中，可以使用status命令查看迁移进度：
+# gluster volume replace-brick &lt;VOLNAME&gt; &lt;BRICK&gt; &lt;NEW-BRICK&gt; status
+
+在数据迁移结束后，执行commit命令来进行Brick替换：
+# gluster volume replace-brick &lt;VOLNAME&gt; &lt;BRICK&gt; &lt;NEW-BRICK&gt; commit
+</code></pre>
+<p>重新均衡卷</p>
+<pre><code>不迁移数据：
+
+# gluster volume rebalance &lt;VOLNAME&gt; lay-outstart
+# gluster volume rebalance &lt;VOLNAME&gt; start
+# gluster volume rebalance &lt;VOLNAME&gt; startforce
+# gluster volume rebalance &lt;VOLNAME&gt; status
+# gluster volume rebalance &lt;VOLNAME&gt; stop
+</code></pre>
+<p>系统扩展维护</p>
+<pre><code>开启/关闭系统配额：
+# gluster volume quota &lt;VOLNAME&gt; enable | disable
+
+设置目录配额：
+# gluster volume quota &lt;VOLNAME&gt; limit-usage &lt;DIR&gt; &lt;VALUE&gt;
+
+查看配额：
+# gluster volume quota &lt;VOLNAME&gt; list [&lt;DIR&gt;]
+
+地域复制（geo-replication）：
+# gluster volume geo-replication &lt;MASTER&gt; &lt;SLAVE&gt; start | status | stop
+
+IO信息查看：
+# gluster volume profile &lt;VOLNAME&gt; start | info | stop
+
+Top监控：
+Top命令允许你查看Brick的性能，例如：read,write, file open calls, file read calls, file write calls, directory opencalls, and directory real calls。所有的查看都可以设置 top数，默认100。
+
+查看打开的 fd：
+# gluster volume top &lt;VOLNAME&gt; open[brick &lt;BRICK&gt;] [list-cnt &lt;COUNT&gt;]
+
+其中，open可以替换为read, write, opendir, readdir等。
+查看每个 Brick 的读性能：
+
+# gluster volume top &lt;VOLNAME&gt; read-perf [bs &lt;BLOCK-SIZE&gt; count &lt;COUNT&gt;] [brick &lt;BRICK&gt;] [list-cnt &lt;COUNT&gt;]
+
+其中，read-perf可以替换为write-perf等。
+</code></pre>
+<p>GlusterFS优化</p>
+<pre><code># 设置 cache 大小, 默认32MB
+gluster volume set senyintvolume performance.cache-size 4GB
+
+# 设置 io 线程, 太大会导致进程崩溃
+gluster volume set senyintvolume performance.io-thread-count 16
+
+# 设置 网络检测时间, 默认42s
+gluster volume set senyintvolume network.ping-timeout 10
+
+# 设置 写缓冲区的大小, 默认1M
+gluster volume set senyintvolume performance.write-behind-window-size 1024MB
+
+# 开启 指定 volume 的配额，不使用
+gluster volume quota k8s-volume enable
+
+# 限制 指定 volume 的配额，不使用
+gluster volume quota k8s-volume limit-usage / 1TB
+</code></pre>
+<p>操作示例</p>
+<pre><code>强制创建卷
+</code></pre>
+<pre><code>gluster volume create testvol ip:/date/brick1 ip:/date/brick2 force
+</code></pre>
+<pre><code>磁盘限额
+</code></pre>
+<pre><code>to quota glusterfs
+主要是对挂载点下的某个目录进行空间限额（对客户端下某个目录限制，而不是对组成的空间进行的限制 如：server1目录、server2目录）
+
+#gluster volume quota test-volume enable 激活quota功能
+
+#gluster volume quota test-volume disable 关闭quota功能
+
+#gluster volume quota test-volume limit-usage /data 10GB           ---/exp2/data 目录限制
+
+#gluster volume quota test-volume list         ---quota信息列表
+
+#gluster volume set test-volume features.quota-timeout 5  设置信息的超时时间
+
+#gluster volume quota test-volume remove  /data  删除某个目录的quota设置
+</code></pre>
+<pre><code>添加存储节点
+</code></pre>
+<pre><code>#gluster peer probe server4   向turst pool  添加新server4
+
+#gluster volume add-brick test-volume server4:/server4  卷组添加新空间
+
+gluster volume info 查看当前所有volume状态
+
+#gluster volume rebalance test-volume start          对扩容后的卷组进行rebalance
+
+#gluster volume rebalance test-volume status
+
+#gluster volume rebalance test-volume stop
+</code></pre>
+<pre><code>glusterfs的参数进行设置优化
+</code></pre>
+<pre><code>#gluserfs volume set test-volume performance.cache-size 256M
+</code></pre>
+<pre><code>删除GlusterFS磁盘：
+</code></pre>
+<pre><code># gluster volume stop datavolume1
+# gluster volume delete datavolume1
+</code></pre>
+<pre><code>卸载GlusterFS磁盘：
+</code></pre>
+<pre><code># gluster peer detach idc1-server4
+</code></pre>
+<pre><code>ACL访问控制：
+</code></pre>
+<pre><code># gluster volume set datavolume1 auth.allow 10.100.1.*,10.200.1.*
+</code></pre>
+<pre><code>添加GlusterFS节点：
+</code></pre>
+<pre><code># gluster peer probe idc1-server5
+
+# gluster peer probe idc1-server6
+
+# gluster volume add-brick datavolume1 idc1-server5:/usr/local/share/datavolume1 idc1-server6:/usr/local/share/datavolume1
+</code></pre>
+<pre><code>迁移GlusterFS磁盘数据：
+</code></pre>
+<pre><code># gluster volume remove-brick datavolume1 idc1-server1:/usr/local/share/datavolume1 idc1-server5:/usr/local/share/datavolume1 start
+
+# gluster volume remove-brick datavolume1 idc1-server1:/usr/local/share/datavolume1 idc1-server5:/usr/local/share/datavolume1 status
+
+# gluster volume remove-brick datavolume1 idc1-server1:/usr/local/share/datavolume1 idc1-server5:/usr/local/share/datavolume1 commit
+</code></pre>
+<pre><code>数据重新分配：
+</code></pre>
+<pre><code># gluster volume rebalance datavolume1 start
+
+# gluster volume rebalance datavolume1 status
+
+# gluster volume rebalance datavolume1 stop
+</code></pre>
+<pre><code>修复GlusterFS磁盘数据（例如在idc1-server1宕机的情况下）：
+</code></pre>
+<pre><code># gluster volume replace-brick datavolume1 idc1-server1:/usr/local/share/datavolume1 idc1-server5:/usr/local/share/datavolume1 commit -force
+
+# gluster volume heal datavolume1 full
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/E9lWShbH4/" class="tag">
+                    glusterfs
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/xargs-zhi-xing-duo-ge-can-shu/">
+                  <h3 class="post-title">
+                    xargs执行多个参数
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

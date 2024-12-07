@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>helm-dashboard | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="---
+# Source: helm-dashboard/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: helm-da..." />
+    <meta name="keywords" content="helm,k8s" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">helm-dashboard</h2>
+            <div class="post-date">2023-12-16</div>
+            
+            <div class="post-content" v-pre>
+              <pre><code class="language-yaml">---
+# Source: helm-dashboard/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: helm-dashboard
+  labels:
+    helm.sh/chart: helm-dashboard-0.1.10
+    app.kubernetes.io/name: helm-dashboard
+    app.kubernetes.io/instance: helm-dashboard
+    app.kubernetes.io/version: &quot;1.3.3&quot;
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: helm-dashboard/templates/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: helm-dashboard
+  namespace: &quot;default&quot;
+  labels:
+    helm.sh/chart: helm-dashboard-0.1.10
+    app.kubernetes.io/name: helm-dashboard
+    app.kubernetes.io/instance: helm-dashboard
+    app.kubernetes.io/version: &quot;1.3.3&quot;
+    app.kubernetes.io/managed-by: Helm
+spec:
+  storageClassName: &quot;nfs3&quot;
+  accessModes:
+    - &quot;ReadWriteOnce&quot;
+  resources:
+    requests:
+      storage: &quot;1000M&quot;
+---
+# Source: helm-dashboard/templates/serviceaccount.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: helm-dashboard
+rules:
+  - apiGroups: [&quot;*&quot;]
+    resources: [&quot;*&quot;]
+    verbs: [&quot;get&quot;, &quot;list&quot;, &quot;watch&quot;, &quot;create&quot;, &quot;delete&quot;, &quot;patch&quot;, &quot;update&quot;]
+---
+# Source: helm-dashboard/templates/serviceaccount.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: helm-dashboard
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: helm-dashboard
+subjects:
+  - kind: ServiceAccount
+    namespace: default
+    name: helm-dashboard
+---
+# Source: helm-dashboard/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: helm-dashboard
+  labels:
+    helm.sh/chart: helm-dashboard-0.1.10
+    app.kubernetes.io/name: helm-dashboard
+    app.kubernetes.io/instance: helm-dashboard
+    app.kubernetes.io/version: &quot;1.3.3&quot;
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: helm-dashboard
+    app.kubernetes.io/instance: helm-dashboard
+---
+# Source: helm-dashboard/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helm-dashboard
+  labels:
+    helm.sh/chart: helm-dashboard-0.1.10
+    app.kubernetes.io/name: helm-dashboard
+    app.kubernetes.io/instance: helm-dashboard
+    app.kubernetes.io/version: &quot;1.3.3&quot;
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: helm-dashboard
+      app.kubernetes.io/instance: helm-dashboard
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: helm-dashboard
+        app.kubernetes.io/instance: helm-dashboard
+    spec:
+      serviceAccountName: helm-dashboard
+      securityContext:
+        {}
+      containers:
+        - name: helm-dashboard
+          command:
+            - /bin/helm-dashboard
+          args:
+            - --no-browser
+            - --bind=0.0.0.0
+          securityContext:
+            {}
+          image: &quot;komodorio/helm-dashboard:1.3.3&quot;
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: HELM_CACHE_HOME
+              value: /opt/dashboard/helm/cache
+            - name: HELM_CONFIG_HOME
+              value: /opt/dashboard/helm/config
+            - name: HELM_DATA_HOME
+              value: /opt/dashboard/helm/data
+            - name: DEBUG
+              value:
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: http
+          resources:
+            limits:
+              cpu: 1
+              memory: 1Gi
+            requests:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /opt/dashboard/helm
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: helm-dashboard
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/-36YqaA-k/" class="tag">
+                    helm
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/_Nfycvl4t/" class="tag">
+                    k8s
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/nfsv3-storageclass/">
+                  <h3 class="post-title">
+                    nfsv3-storageclass
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

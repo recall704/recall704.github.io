@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>k8s 中使用 leader 选举实现高可用 | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="在前面的文章 Kubernetes中基于二层的负载均衡实现 有提到过使用 leader 选举来实现高可用，下面是对应的参考代码
+
+package main
+
+import (
+	&quot;context&quot;
+	&quot;os&q..." />
+    <meta name="keywords" content="leader,高可用,k8s" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">k8s 中使用 leader 选举实现高可用</h2>
+            <div class="post-date">2022-11-06</div>
+            
+            <div class="post-content" v-pre>
+              <p>在前面的文章 <a href="/post/kubernetes-zhong-ji-yu-er-ceng-de-fu-zai-jun-heng-shi-xian/">Kubernetes中基于二层的负载均衡实现</a> 有提到过使用 leader 选举来实现高可用，下面是对应的参考代码</p>
+<!-- more -->
+<pre><code class="language-go">package main
+
+import (
+	&quot;context&quot;
+	&quot;os&quot;
+	&quot;os/signal&quot;
+	&quot;syscall&quot;
+	&quot;time&quot;
+
+	&quot;github.com/golang/glog&quot;
+	&quot;github.com/google/uuid&quot;
+
+	metav1 &quot;k8s.io/apimachinery/pkg/apis/meta/v1&quot;
+	&quot;k8s.io/client-go/informers&quot;
+	&quot;k8s.io/client-go/kubernetes&quot;
+	&quot;k8s.io/client-go/rest&quot;
+	&quot;k8s.io/client-go/tools/leaderelection&quot;
+	&quot;k8s.io/client-go/tools/leaderelection/resourcelock&quot;
+)
+
+func main() {
+	defer glog.Flush()
+
+	// 当前 pod 运行的 namespace，推荐从 downward api 读取
+	namespace := &quot;default&quot;
+
+	// 使用随机生成的 uuid，也可以使用 pod_name 作为注册的唯一标识
+	uuid, _ := uuid.NewUUID()
+	id := uuid.String()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	config, err := rest.InClusterConfig()
+	client := kubernetes.NewForConfigOrDie(config)
+
+	stop := make(chan struct{})
+	stopCh := make(chan os.Signal, 1)
+	signal.Notify(stopCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		&lt;-stopCh
+		glog.Info(&quot;Received termination, signaling shutdown&quot;)
+		close(stop)
+		cancel()
+	}()
+
+	run := func(ctx context.Context, stop &lt;-chan struct{}) {
+		sharedInformerFactory := informers.NewSharedInformerFactory(client, 5*time.Minute)
+		//    业务相关
+
+		glog.Infof(&quot;start shared informer factory&quot;)
+		sharedInformerFactory.Start(stop)
+
+		&lt;-stopCh
+	}
+
+	// 创建一个资源锁
+	lock := &amp;resourcelock.LeaseLock{
+		LeaseMeta: metav1.ObjectMeta{
+			Name:      &quot;app-xxx-lockname&quot;,
+			Namespace: namespace,
+		},
+		Client: client.CoordinationV1(),
+		LockConfig: resourcelock.ResourceLockConfig{
+			Identity: id,
+		},
+	}
+
+	// 开启一个选举的循环
+	leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{
+		Lock:            lock,
+		ReleaseOnCancel: true,
+		LeaseDuration:   60 * time.Second,
+		RenewDeadline:   15 * time.Second,
+		RetryPeriod:     5 * time.Second,
+		Callbacks: leaderelection.LeaderCallbacks{
+			OnStartedLeading: func(ctx context.Context) {
+				// 当选举为leader后所运行的业务逻辑
+				run(ctx, stop)
+			},
+			OnStoppedLeading: func() {
+				// we can do cleanup here
+				glog.Infof(&quot;leader lost: %s&quot;, id)
+				os.Exit(0)
+			},
+			OnNewLeader: func(identity string) { // 申请一个选举时的动作
+				if identity == id {
+					return
+				}
+				glog.Infof(&quot;new leader elected: %s&quot;, identity)
+			},
+		},
+	})
+}
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/tTjwPZo16/" class="tag">
+                    leader
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/h73M_K2oXd/" class="tag">
+                    高可用
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/_Nfycvl4t/" class="tag">
+                    k8s
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/k8s-zhong-de-rbac/">
+                  <h3 class="post-title">
+                    k8s 中的 RBAC
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

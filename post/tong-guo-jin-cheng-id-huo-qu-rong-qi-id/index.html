@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>通过进程 id 获取容器 id | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="在运维过程中，我们经常会遇到某个进程 cpu 或内存使用率过高，想知道具体是哪个容器。
+可以通过读取进程 ID 的 cgroup 来获取对应的容器
+
+cat /proc/&lt;process-pid&gt;/cgroup
+docker i..." />
+    <meta name="keywords" content="docker,进程,PID" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">通过进程 id 获取容器 id</h2>
+            <div class="post-date">2022-11-14</div>
+            
+            <div class="post-content" v-pre>
+              <p>在运维过程中，我们经常会遇到某个进程 cpu 或内存使用率过高，想知道具体是哪个容器。<br>
+可以通过读取进程 ID 的 cgroup 来获取对应的容器</p>
+<!-- more -->
+<pre><code class="language-shell">cat /proc/&lt;process-pid&gt;/cgroup
+docker inspect  --format '{{.Name}}'  $container_id
+
+# 举例
+# cat /proc/34516/cgroup 
+0::/kubepods.slice/kubepods-besteffort.slice/kubepods-besteffort-pode0ac4355_2ddf_4b82_8b1d_46f4a1020917.slice/docker-c53867242d6992bc2d79e1f4702bc89688f32b83c7c5c9361f3ef789429b8175.scope
+
+# docker inspect c53867242d6992bc2d79e1f4702bc89688f32b83c7c5c9361f3ef789429b8175
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/ulZAkfnan/" class="tag">
+                    docker
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/SCp7oC9JuO/" class="tag">
+                    进程
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/HuR7gs2JHF/" class="tag">
+                    PID
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/k8s-zhong-shi-yong-leader-xuan-ju-shi-xian-gao-ke-yong/">
+                  <h3 class="post-title">
+                    k8s 中使用 leader 选举实现高可用
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

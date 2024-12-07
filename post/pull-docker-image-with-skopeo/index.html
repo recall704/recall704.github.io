@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>pull docker image with skopeo | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="cat &gt; skopeo_pull.py &lt;&lt; \EOF
+import subprocess
+import argparse
+
+def split_docker_image(image: str, prefix=&quot..." />
+    <meta name="keywords" content="image,docker" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">pull docker image with skopeo</h2>
+            <div class="post-date">2024-04-20</div>
+            
+            <div class="post-content" v-pre>
+              <pre><code class="language-python">cat &gt; skopeo_pull.py &lt;&lt; \EOF
+import subprocess
+import argparse
+
+def split_docker_image(image: str, prefix=&quot;&quot;):
+    image_parts = image.split(&quot;/&quot;)
+    name_tag = image_parts[-1]
+    if len(image_parts) &gt;= 3:
+        # docker.io/library/mysql:5.7.44
+        project = image_parts[-2]
+        hub = &quot;/&quot;.join(image_parts[:-2])
+    elif len(image_parts) == 2:
+        # win7/mysql:5.7.44
+        project = image_parts[0]
+        hub = &quot;docker.io&quot;
+    else:
+        # mysql:5.7.44
+        project = &quot;library&quot;
+        hub = &quot;docker.io&quot;
+    if len(name_tag.split(&quot;:&quot;)) == 1:
+        name = name_tag
+        tag = &quot;latest&quot;
+    else:
+        name, tag = name_tag.split(&quot;:&quot;)
+    if prefix != &quot;&quot;:
+        name = name[len(prefix):]
+    return hub, project, name, tag
+
+def main():
+    parser = argparse.ArgumentParser(description=&quot;Process docker image.&quot;)
+    parser.add_argument('-i','--image', type=str, help='Docker image to be processed')
+    parser.add_argument('-p','--prefix', type=str, default=&quot;&quot;, help='Prefix to remove from the image name')
+    parser.add_argument('-d','--download-path', type=str, default=&quot;/pool2/Downloads/&quot;, help='Path where the docker image will be downloaded')
+    parser.add_argument('-r','--dry-run', action='store_true', help='If set, the commands will not be executed')
+
+    args = parser.parse_args()
+
+    hub, project, name, tag = split_docker_image(args.image, args.prefix)
+    file_path = f&quot;{args.download_path}{name}_{tag}.tar.gz&quot;
+    # Ensure the download path ends with a slash
+    if not args.download_path.endswith('/'):
+        args.download_path += '/'
+        
+    image = f&quot;{hub}/{project}/{name}:{tag}&quot;
+    download_cmd = f&quot;skopeo copy docker://{image} docker-archive:/{file_path}:{image}&quot;
+    load_cmd = f&quot;docker load -i {file_path}&quot;
+    delete_cmd = f&quot;rm -rf {file_path}&quot;
+
+    print(f&quot;{download_cmd}&quot;)
+    print(f&quot;{load_cmd}&quot;)
+    print(f&quot;{delete_cmd}&quot;)
+
+
+    if not args.dry_run:
+        subprocess.run(download_cmd, shell=True)
+        subprocess.run(load_cmd, shell=True)
+
+if __name__ == &quot;__main__&quot;:
+    main()
+EOF
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://recall704.github.io/tag/mrzR_seGd/" class="tag">
+                    image
+                  </a>
+                
+                  <a href="https://recall704.github.io/tag/ulZAkfnan/" class="tag">
+                    docker
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/merge-code/">
+                  <h3 class="post-title">
+                    代码合并成markdown
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>

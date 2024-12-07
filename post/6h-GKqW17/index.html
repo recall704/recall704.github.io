@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>fio磁盘测试 | 走剧情的NPC</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://recall704.github.io/favicon.ico?v=1733595334661">
+<link rel="stylesheet" href="https://recall704.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="一、fio 版本
+3.13
+二、fio 参数
+Fio 有很多参数可以影响测试结果，在以下测试中我们遵循的原则是：尽量采用各项参数的默认值，不针对系统、硬件等进行调优，以此提供一个性能参考。下面是使用到的参数列表：
+
+
+
+参数
+说明
+
+
+
+
+..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://recall704.github.io">
+        <img src="https://recall704.github.io/images/avatar.png?v=1733595334661" class="site-logo">
+        <h1 class="site-title">走剧情的NPC</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/recall704" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      学无先后，达者为师
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/recall704" target="_blank">Gridea</a> | <a class="rss" href="https://recall704.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">fio磁盘测试</h2>
+            <div class="post-date">2023-06-07</div>
+            
+            <div class="post-content" v-pre>
+              <h2 id="一-fio-版本">一、fio 版本</h2>
+<p>3.13</p>
+<h2 id="二-fio-参数">二、fio 参数</h2>
+<p>Fio 有很多参数可以影响测试结果，在以下测试中我们遵循的原则是：尽量采用各项参数的默认值，不针对系统、硬件等进行调优，以此提供一个性能参考。下面是使用到的参数列表：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>--name</td>
+<td>测试任务名称。</td>
+</tr>
+<tr>
+<td>--directory</td>
+<td>测试数据读写路径，即磁盘挂载路径，如果是数据卷，则为对应的数据卷挂载路径，以下测试以 /data 举例。</td>
+</tr>
+<tr>
+<td>--rw</td>
+<td>读写模式，以下测试会涉及 read（顺序读），write（顺序写）。</td>
+</tr>
+<tr>
+<td>--bs</td>
+<td>每次读写的块数据大小。</td>
+</tr>
+<tr>
+<td>--size</td>
+<td>这次测试任务的总文件大小。</td>
+</tr>
+<tr>
+<td>--filesize</td>
+<td>测试任务中生成的单个文件大小，在小文件顺序读写测试中用到。</td>
+</tr>
+<tr>
+<td>--numjobs</td>
+<td>并发任务数，fio 默认使用多进程（process）方式。</td>
+</tr>
+<tr>
+<td>--nrfiles</td>
+<td>在每个任务中生成的文件数量。</td>
+</tr>
+<tr>
+<td>--refill_buffers</td>
+<td>默认情况下，fio 会在测试任务开始时创建用于生成测试文件的数据片段，并一直重用这些数据。使用这个参数后，会在每次 I/O 提交后重新生成数据，保证生成测试文件内容有充分的随机性。</td>
+</tr>
+<tr>
+<td>--file_service_type</td>
+<td>用来定义测试任务中的文件选取方式，有 random, roundrobin, sequential 三种。在小文件顺序读写测试中使用了这个参数来保证 fio 是一个接一个的读写文件，没有并行的文件操作。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="三-大文件读写测试">三、大文件读写测试</h2>
+<h3 id="31-大文件顺序读">3.1 大文件顺序读</h3>
+<pre><code>fio --name=big-file-sequential-read \
+    --directory=/data \
+    --rw=read --refill_buffers \
+    --bs=256k --size=4G
+</code></pre>
+<h3 id="32-大文件顺序写">3.2 大文件顺序写</h3>
+<pre><code>fio --name=big-file-sequential-write \
+    --directory=/data \
+    --rw=write --refill_buffers \
+    --bs=256k --size=4G
+</code></pre>
+<h3 id="33-大文件并发读">3.3 大文件并发读</h3>
+<pre><code>fio --name=big-file-multi-read \
+--directory=/data \
+--rw=read --refill_buffers \
+--bs=256k --size=4G \
+--numjobs={1, 2, 4, 8, 16}
+</code></pre>
+<h3 id="34-大文件并发写">3.4 大文件并发写</h3>
+<pre><code>fio --name=big-file-multi-write \
+    --directory=/data \
+    --rw=write --refill_buffers \
+    --bs=256k --size=4G  \
+    --numjobs={1, 2, 4, 8, 16}
+</code></pre>
+<h3 id="35-大文件随机读">3.5 大文件随机读</h3>
+<pre><code>fio --name=big-file-rand-read \
+    --directory=/data \
+    --rw=randread --refill_buffers \
+    --size=4G --filename=randread.bin \
+    --bs={4k, 16k, 64k, 256k} --pre_read=1
+
+sync &amp;&amp; echo 3 &gt; /proc/sys/vm/drop_caches
+
+fio --name=big-file-rand-read \
+    --directory=/data \
+    --rw=randread --refill_buffers \
+    --size=4G --filename=randread.bin \
+    --bs={4k, 16k, 64k, 256k}
+</code></pre>
+<h3 id="36-大文件随机写">3.6 大文件随机写</h3>
+<pre><code>fio --name=big-file-random-write \
+    --directory=/data \
+    --rw=randwrite --refill_buffers \
+    --size=4G --bs={4k, 16k, 64k, 256k}
+</code></pre>
+<h2 id="四-小文件读写测试">四、小文件读写测试</h2>
+<p>我们的小文件一般在 0.8MB - 3.6MB 左右，测试时按这个来测试</p>
+<h3 id="41-小文件读">4.1 小文件读</h3>
+<pre><code>fio --name=small-file-seq-read \
+    --directory=/data \
+    --rw=read --file_service_type=sequential \
+    --bs={4k, 16k, 64k, 256k} --filesize={file_size} --nrfiles=1000
+</code></pre>
+<h3 id="42-小文件写">4.2 小文件写</h3>
+<pre><code>fio --name=small-file-seq-write \
+    --directory=/data \
+    --rw=write --file_service_type=sequential \
+    --bs=4k --filesize={820k,3690k} --nrfiles=1000
+
+###########################################################
+fio --name=small-file-seq-write \
+    --directory=/data \
+    --rw=write --file_service_type=sequential \
+    --bs=4k --filesize=1024k --nrfiles=1000
+
+###########################################################
+fio --name=small-file-seq-write \
+    --directory=/data \
+    --rw=write --file_service_type=sequential \
+    --bs=4k --filesize=4096k --nrfiles=1000
+
+small-file-seq-write: Laying out IO files (1000 files / total 4000MiB)
+Jobs: 1 (f=1): [W(1)][100.0%][w=58.9MiB/s][w=15.1k IOPS][eta 00m:00s]
+</code></pre>
+<h3 id="43-小文件并发读">4.3 小文件并发读</h3>
+<pre><code>fio --name=small-file-multi-read \
+    --directory=/data \
+    --rw=read --file_service_type=sequential \
+    --bs=4k --filesize=4k --nrfiles=1000 \
+    --numjobs={1, 2, 4, 8, 16}
+</code></pre>
+<h3 id="44-小文件并发写">4.4 小文件并发写</h3>
+<pre><code>fio --name=small-file-multi-write \
+    --directory=/data \
+    --rw=write --file_service_type=sequential \
+    --bs=4k --filesize=4k --nrfiles=1000 \
+    --numjobs={1, 2, 4, 8, 16}
+</code></pre>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://recall704.github.io/post/readiness/">
+                  <h3 class="post-title">
+                    k8s 中的就绪检查
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+
+  </body>
+</html>
